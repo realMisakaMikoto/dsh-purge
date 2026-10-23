@@ -245,21 +245,25 @@ try {
     pass("the real transactional runner patches only its selected host and journals the change");
   }
   {
-    const fx = fixture("legacy-boot-markers");
-    const stamp = path.join(fx.home, "dsh-purge/installed-rev");
-    const applied = path.join(fx.home, "dsh-purge/applied.json");
-    write(stamp, "apply:1.0.0\n");
-    write(applied, JSON.stringify({ version: "1.0.0", sha: "apply:1.0.0", at: new Date().toISOString() }));
-    fx.tx.metadata.push({ path: stamp, content: fx.tx.target.sha + "\n" },
-      { path: applied, content: JSON.stringify({ version: fx.tx.target.version, sha: fx.tx.target.sha, at: new Date().toISOString() }) });
-    journal.capture(fx.tx, stamp, "metadata"); journal.capture(fx.tx, applied, "metadata"); journal.save(fx.tx);
-    const result = await runOperation(fx.file, { ...adapters, wait: async () => {
-      write(stamp, "apply:1.1.0\n");
-      write(applied, JSON.stringify({ version: "1.1.0", sha: "apply:1.1.0", at: new Date().toISOString() }));
-    } });
-    assert.equal(result.phase, "verified", result.error);
-    assert.equal(fs.readFileSync(stamp, "utf8").trim(), fx.tx.target.sha);
-    assert.equal(journal.readJson(applied).sha, fx.tx.target.sha);
+    for (const previousRevision of ["apply:1.0.0", "b".repeat(40)]) {
+      const fx = fixture("legacy-boot-markers-" + previousRevision.slice(0, 5).replace(":", ""));
+      if (previousRevision.length === 40) fx.tx.previous.sha = previousRevision;
+      const stamp = path.join(fx.home, "dsh-purge/installed-rev");
+      const applied = path.join(fx.home, "dsh-purge/applied.json");
+      write(stamp, previousRevision + "\n");
+      write(applied, JSON.stringify({ version: "1.0.0", sha: previousRevision, at: new Date().toISOString() }));
+      fx.tx.metadata.push({ path: stamp, content: fx.tx.target.sha + "\n" },
+        { path: applied, content: JSON.stringify({ version: fx.tx.target.version, sha: fx.tx.target.sha, at: new Date().toISOString() }) });
+      journal.capture(fx.tx, stamp, "metadata"); journal.capture(fx.tx, applied, "metadata"); journal.save(fx.tx);
+      const result = await runOperation(fx.file, { ...adapters, wait: async () => {
+        const bootRevision = previousRevision.length === 40 ? previousRevision : "apply:1.1.0";
+        write(stamp, bootRevision + "\n");
+        write(applied, JSON.stringify({ version: "1.1.0", sha: bootRevision, at: new Date().toISOString() }));
+      } });
+      assert.equal(result.phase, "verified", result.error);
+      assert.equal(fs.readFileSync(stamp, "utf8").trim(), fx.tx.target.sha);
+      assert.equal(journal.readJson(applied).sha, fx.tx.target.sha);
+    }
     pass("known legacy startup markers are reconciled only after activation verification");
   }
   {
