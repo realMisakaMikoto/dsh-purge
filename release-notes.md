@@ -10,6 +10,7 @@
 
 - Prevent async filesystem journaling from reentering its own backup/journal writes.
 - Retry transient Windows journal replacement locks with a bounded delay; permanent failures retain recovery data.
+- Defer startup version markers until activation is verified, reconcile recognized legacy markers, and allow repeated restoration of already-removed new files.
 - Cover async Buffer writes, copies, renames, and restoration with a large Unicode journal, including validation on the bundled DSH Node runtime.
 
 # 1.1.77
