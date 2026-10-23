@@ -123,6 +123,22 @@ try {
     pass("real isolated filesystem journal restores atomic renames and rejects directory removal");
   }
   {
+    const fx = fixture("async-journal");
+    fx.tx.fixture_padding = "\u65e5\u5fd7".repeat(65536);
+    journal.save(fx.tx);
+    const file = path.join(fx.runtime, "cli/bin/dsh.cmd");
+    write(file, "before async");
+    const program = "import fs from 'node:fs';import {installFileJournal} from " + JSON.stringify(pathToFileURL(path.join(root, "lib/file-journal.js")).href) + ";installFileJournal(process.argv[1]);const p=process.argv[2];for(let i=0;i<30;i++){await fs.promises.writeFile(p+'.tmp',Buffer.from('value '+i));await fs.promises.copyFile(p+'.tmp',p);await fs.promises.rename(p+'.tmp',p+'.moved');await fs.promises.unlink(p+'.moved');}console.log('async writes complete');";
+    const run = spawnSync(process.execPath, ["--expose-internals", "--input-type=module", "-e", program, fx.file, file],
+      { encoding: "utf8", windowsHide: true, timeout: 30000 });
+    assert.equal(run.status, 0, run.stderr);
+    assert.equal(fs.readFileSync(file, "utf8"), "value 29");
+    const tx = journal.load(fx.file); journal.restoreFiles(tx);
+    assert.equal(fs.readFileSync(file, "utf8"), "before async");
+    journal.phase(tx, "rolled_back"); journal.releaseLocks(tx);
+    pass("async Buffer writes/copies/renames cannot reenter or lock their own journal");
+  }
+  {
     const fx = fixture("boot-proof");
     fx.tx.attempt_started = Date.now();
     const report = { nonce: fx.tx.nonce, pid: 424242, started_at: Date.now() + 1, version: fx.tx.target.version, sha: fx.tx.target.sha,
