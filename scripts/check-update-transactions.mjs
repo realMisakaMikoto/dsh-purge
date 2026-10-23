@@ -44,7 +44,9 @@ try {
   {
     const fx = fixture("success");
     let sawOldMetadata = false;
-    const result = await runOperation(fx.file, { ...adapters, wait: async () => {
+    const result = await runOperation(fx.file, { ...adapters, reapply: async (tx) => {
+      journal.replaceFile(tx, fx.metadata, "legacy premature marker", "metadata");
+    }, wait: async () => {
       assert.equal(fs.readFileSync(fx.metadata, "utf8"), "old metadata"); sawOldMetadata = true;
     } });
     assert.equal(result.phase, "verified"); assert.equal(sawOldMetadata, true);
