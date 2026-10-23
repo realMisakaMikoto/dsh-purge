@@ -2,10 +2,11 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import http from "node:http";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import * as journal from "../lib/update-transaction.js";
-import { runOperation } from "../lib/update-worker.js";
+import { runOperation, requestStatus } from "../lib/update-worker.js";
 import { bootMatches } from "../lib/operation-boot.js";
 import { runtimeChecks, supportedNode } from "../lib/runtime-check.js";
 
@@ -190,6 +191,49 @@ try {
     fs.unlinkSync(path.join(dir, "untracked")); write(path.join(dir, "file"), "modified");
     assert.throws(() => journal.gitState(dir), /Local plugin edits/);
     pass("both tracked and untracked Git edits stop updates");
+  }
+  {
+    const fx = fixture("selected-host-runner");
+    const hostFile = path.join(fx.dir, "host/index.js");
+    write(hostFile, "original selected host");
+    const library = path.join(fx.plugin, "lib");
+    write(path.join(library, "core.js"), [
+      "import fs from 'node:fs';",
+      "export const ALL_PATCHES=[{id:1}];",
+      "export function applyRuntimeEnv() {}",
+      "export function refreshStaleBaksForUpgrade() {}",
+      "export async function backupAll() {return {errors:[]}}",
+      "export async function revertAll() {return {errors:[]}}",
+      "export async function revertAllShims() {}",
+      "export function getHooksDenySettings() {return {hooksDenyBypass:true}}",
+      "export async function applyPatches(base) {if(base!==" + JSON.stringify(fx.dir) + ")throw Error('wrong host');fs.writeFileSync(" + JSON.stringify(hostFile) + ",'selected host patched');return [{patch_id:1,status:'applied'}]}",
+      "export async function applyPatchesAllHosts() {throw Error('unrelated old CLI must not be visited')}",
+      "export async function patchAllShims() {}",
+      "export function silenceCmdFlash() {return {ok:true}}",
+      "export function summarizeApplyReport(report) {return {failed:[],applied:report.length}}",
+      "export function hostCleanMarkersPresent() {return true}",
+    ].join("\n"));
+    write(path.join(library, "hooks-deny.js"), "export const selectPatches=(patches)=>patches;");
+    const run = spawnSync(process.execPath, [path.join(root, "lib/reapply-transaction.js")], {
+      encoding: "utf8", windowsHide: true, env: { ...process.env, DSH_PURGE_JOURNAL: fx.file,
+        DSH_PURGE_TARGET_REAPPLY: path.join(library, "reapply.js"), DSH_PURGE_TARGET_BASE: fx.dir },
+    });
+    assert.equal(run.status, 0, run.stderr);
+    assert.equal(JSON.parse(run.stdout).ok, true);
+    assert.equal(fs.readFileSync(hostFile, "utf8"), "selected host patched");
+    const tx = journal.load(fx.file); journal.restoreFiles(tx);
+    assert.equal(fs.readFileSync(hostFile, "utf8"), "original selected host");
+    journal.phase(tx, "rolled_back"); journal.releaseLocks(tx);
+    pass("the real transactional runner patches only its selected host and journals the change");
+  }
+  {
+    const server = http.createServer((_req, res) => setTimeout(() => { res.setHeader("content-type", "application/json"); res.end('{"plugin_version":"fixture","patches_active":true}'); }, 1800));
+    await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+    try {
+      const result = await requestStatus(server.address().port);
+      assert.equal(result?.patches_active, true);
+    } finally { await new Promise((resolve) => server.close(resolve)); }
+    pass("activation probes accept healthy status responses slower than 1.5 seconds");
   }
   assert.equal(supportedNode("18.20.0"), false); assert.equal(supportedNode("22.12.0"), false);
   assert.equal(supportedNode("22.13.0"), true); assert.equal(supportedNode("24.0.0"), true);

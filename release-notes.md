@@ -1,3 +1,19 @@
+# 1.1.77
+
+## 中文
+
+- 修复多宿主升级：事务重新应用补丁时仅处理本次选定的宿主，避免旧 CLI 的不兼容预设阻断桌面升级。
+- 使用持久化文件日志包装选定版本的补丁引擎，失败报告包含具体补丁项。
+- 恢复状态单次请求超时改为 10 秒，避免本机健康状态响应超过 1.5 秒时被误判。整体启动验证窗口仍为 120 秒。
+- 新增真实子进程选定宿主回归和慢状态响应回归；保留两份备份及 runtime 目录保护。
+
+## English
+
+- Reapply through the selected version's patch engine for the selected host only; unrelated legacy CLI presets cannot block a desktop update.
+- Keep per-file journaling and report the exact failed patch items.
+- Allow 10 seconds per recovery status request while retaining the 120-second activation window.
+- Add real child-process scoped-reapply and slow-status regression fixtures; retain rollback and runtime protections.
+
 # 1.1.76
 
 ## 中文
