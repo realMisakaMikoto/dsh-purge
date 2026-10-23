@@ -147,6 +147,16 @@ try {
     pass("payload links to runtime are refused before any installation mutation");
   }
   {
+    const fx = fixture("link-swap");
+    fs.renameSync(path.join(fx.plugin, "lib"), path.join(fx.plugin, "saved-lib"));
+    fs.symlinkSync(fx.runtime, path.join(fx.plugin, "lib"), "junction");
+    assert.throws(() => journal.installPayload(fx.tx), /escaped/);
+    assert.equal(fs.readFileSync(path.join(fx.runtime, "office/SKILL.md"), "utf8"), "runtime sentinel");
+    assert.equal(fs.existsSync(path.join(fx.runtime, "index.js")), false);
+    journal.phase(fx.tx, "failed"); journal.releaseLocks(fx.tx);
+    pass("a directory replaced by a runtime junction after staging cannot redirect writes");
+  }
+  {
     const fx = fixture("retention");
     journal.phase(fx.tx, "verified"); journal.releaseLocks(fx.tx);
     const transactions = [fx.tx];
