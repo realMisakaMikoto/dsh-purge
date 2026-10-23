@@ -1,64 +1,56 @@
 name: Release
 
 on:
+  pull_request:
   push:
     branches:
       - master
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
-  group: release-${{ github.repository }}
+  group: release-${{ github.repository }}-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
+  checks:
+    name: Checks (${{ matrix.os }}, Node ${{ matrix.node }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        node: ["22.13.0", "24.x"]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Syntax and import
+        run: |
+          node --check lib/index.js
+          node --check lib/core.js
+          node --check lib/update.js
+          node --check client.js
+          node --input-type=module -e "import './lib/index.js'"
+      - name: Runtime and regression fixtures
+        run: node scripts/run-checks.mjs
+
   release:
-    if: github.repository == 'realMisakaMikoto/dsh-purge'
+    needs: checks
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master' && github.repository == 'realMisakaMikoto/dsh-purge'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: Syntax-check plugin entry
-        run: |
-          node --check lib/index.js
-          node --check lib/core.js
-          node --check lib/reapply.js
-          node --input-type=module -e "import './lib/index.js'"
-          node scripts/check-desktop-activation.mjs
-          node scripts/check-status-doctor.mjs
-
-      - name: Publish GitHub Release
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24.x"
+      - name: Publish verified archive and checksum
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -euo pipefail
-          version="$(node -p "require('./package.json').version")"
-          tag="v${version}"
-          if gh release view "$tag" >/dev/null 2>&1; then
-            echo "already published: $tag"
-            exit 0
-          fi
-          first="$(head -n 1 release-notes.md | tr -d '\r')"
-          if [ "$first" != "# ${version}" ]; then
-            echo "release-notes.md 第一行必须是 # ${version}，现在是: ${first}"
-            exit 1
-          fi
-          zip="dsh-purge-${version}.zip"
-          if git rev-parse -q --verify "refs/tags/${tag}^{}" >/dev/null; then
-            commit="$(git rev-parse "refs/tags/${tag}^{}")"
-            git archive --format=zip --prefix="dsh-purge-${version}/" --output="$zip" "$commit"
-            gh release create "$tag" --title "$tag" --notes-file release-notes.md
-          else
-            git archive --format=zip --prefix="dsh-purge-${version}/" --output="$zip" HEAD
-            args=(release create "$tag" --target "$GITHUB_SHA" --title "$tag" --notes-file release-notes.md)
-            case "$version" in
-              *beta*|*alpha*|*rc*) args+=(--prerelease) ;;
-            esac
-            gh "${args[@]}"
-          fi
-          test -s "$zip"
-          gh release upload "$tag" "$zip" --clobber
-          echo "published https://github.com/${{ github.repository }}/releases/tag/${tag}"
+        run: node scripts/publish-release.mjs

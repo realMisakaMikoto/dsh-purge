@@ -5,6 +5,7 @@ import * as rules from "../lib/rules.js";
 import * as doctor from "../lib/doctor.js";
 import path from "node:path";
 import { createRequire } from "node:module";
+import { runtimeChecks } from "../lib/runtime-check.js";
 
 const args = process.argv.slice(2);
 
@@ -125,7 +126,7 @@ async function main() {
       linkPaths.push(installed);
     }
     const baseline = saveBaseline ? null : doctor.readBaseline(home);
-    const result = doctor.runChecks({ state, repo: wantRepo, linkPaths, baseline });
+    const result = doctor.runChecks({ state, repo: wantRepo, linkPaths, baseline, runtime: await runtimeChecks() });
     let baselineSaved = null;
     if (saveBaseline && result.ok) {
       baselineSaved = doctor.writeBaseline(home, { ai_base: state.ai_base, surface: state.surface, applied: state.patches_applied });
