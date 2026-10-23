@@ -4,7 +4,7 @@
 
 <h1 align="center">⚔️ DeepSeek Harness 网络安全红队工具（dsh-purge）</h1>
 
-<p align="center"><strong>Version 1.1.75</strong></p>
+<p align="center"><strong>Version 1.1.76</strong></p>
 
 <p align="center">
   <em>DeepSeek Harness 破甲：让所有模型都能破甲，不同模型可换不同提示词；默认提示词面向国模「小码酱」。Jailbreak for every model — swap prompts per model. 求 Star 收藏 ⭐ 如要二开，请查看署名要求部分</em>
@@ -17,7 +17,7 @@
   <a href="https://deepseek.stream/plugins/dsh-purge"><img src="https://img.shields.io/badge/Hub-dsh--purge-1a73e8" alt="DeepSeek Harness Hub"></a>
   <a href="https://www.deepseek.com/harness/"><img src="https://img.shields.io/badge/dsh-0.2.x-blue" alt="DSH"></a>
   <br>
-  <img src="https://img.shields.io/badge/Node.js-%3E%3D18-339933?logo=node.js&logoColor=fff" alt="Node.js">
+  <img src="https://img.shields.io/badge/Node.js-%3E%3D22.13.0-339933?logo=node.js&logoColor=fff" alt="Node.js">
   <img src="https://img.shields.io/badge/JavaScript-F7DF1E?logo=javascript&logoColor=000" alt="JavaScript">
 </p>
 
@@ -37,7 +37,7 @@
 >
 > 写进 profile 还不会改宿主。点会话标题旁的 **dsh-purge** → **清洗** → **应用**。成功会自动重启；补丁没打完不重启。重启后新开一轮对话，注入才进当前会话。
 >
-> Node.js **≥18**。Windows 无闪窗需要 **Node ≥22**。插件市场一键安装和下面的命令都走 npm 包 `dsh-purge`。
+> 需要 Node.js **>=22.13.0** 且 node:sqlite 可用。请从本社区仓库的 GitHub Release 安装；doctor 会检查运行环境。
 
 ## 目录
 
@@ -178,13 +178,13 @@ Harness 不只是把问题交给模型。它还会在运行时改提示词、审
 **Web（官方 `dsh web`）**
 
 ```sh
-dsh plugin --profile web add https://github.com/realMisakaMikoto/dsh-purge/archive/refs/heads/master.tar.gz
+dsh plugin --profile web add https://github.com/realMisakaMikoto/dsh-purge/archive/refs/tags/v1.1.76.tar.gz
 ```
 
 **桌面端（官方 EXE）**
 
 ```sh
-dsh plugin --profile desktop add https://github.com/realMisakaMikoto/dsh-purge/archive/refs/heads/master.tar.gz
+dsh plugin --profile desktop add https://github.com/realMisakaMikoto/dsh-purge/archive/refs/tags/v1.1.76.tar.gz
 ```
 
 两条命令装的是**本仓库这个 fork**，不是同名上游 npm 包：目标直接写 tarball，才带上 0.2.x 兼容补丁。当前目录已经是本仓库时，把同一个 `--profile` 换成 `add .`。`dsh` 不在 PATH 时走 [手动安装](#manual)。
@@ -194,7 +194,7 @@ dsh plugin --profile desktop add https://github.com/realMisakaMikoto/dsh-purge/a
 桌面客户端也可以点按钮（`dsh://` 唤起）：
 
 <p align="center">
-  <a href="dsh://plugin/install?id=dsh-purge&name=dsh-purge&version=1.1.71&repo=realMisakaMikoto%2Fdsh-purge&permissions=%E7%B3%BB%E7%BB%9F%E6%8F%90%E7%A4%BA%E8%AF%8D%E6%B3%A8%E5%85%A5%2C%E6%9C%AC%E6%9C%BA%E8%A1%A5%E4%B8%81%2C%E8%AE%BE%E7%BD%AE%E9%A1%B5&downloadUrl=https%3A%2F%2Fgithub.com%2FrealMisakaMikoto%2Fdsh-purge%2Farchive%2Frefs%2Fheads%2Fmaster.tar.gz"><strong>唤起客户端一键安装</strong></a>
+  <a href="dsh://plugin/install?id=dsh-purge&name=dsh-purge&version=1.1.76&repo=realMisakaMikoto%2Fdsh-purge&permissions=%E7%B3%BB%E7%BB%9F%E6%8F%90%E7%A4%BA%E8%AF%8D%E6%B3%A8%E5%85%A5%2C%E6%9C%AC%E6%9C%BA%E8%A1%A5%E4%B8%81%2C%E8%AE%BE%E7%BD%AE%E9%A1%B5&downloadUrl=https%3A%2F%2Fgithub.com%2FrealMisakaMikoto%2Fdsh-purge%2Farchive%2Frefs%2Ftags%2Fv1.1.76.tar.gz"><strong>唤起客户端一键安装</strong></a>
 </p>
 
 ### 装完都要做这三步
@@ -229,13 +229,13 @@ Web 的控件只动 Web，桌面端的只动桌面应用。不要在一个宿主
 **Web 端（官方 `dsh web`）**
 
 ```sh
-dsh plugin --profile web add https://github.com/realMisakaMikoto/dsh-purge/archive/refs/heads/master.tar.gz
+dsh plugin --profile web add https://github.com/realMisakaMikoto/dsh-purge/archive/refs/tags/v1.1.76.tar.gz
 ```
 
 **桌面端（官方 EXE）**
 
 ```sh
-dsh plugin --profile desktop add https://github.com/realMisakaMikoto/dsh-purge/archive/refs/heads/master.tar.gz
+dsh plugin --profile desktop add https://github.com/realMisakaMikoto/dsh-purge/archive/refs/tags/v1.1.76.tar.gz
 ```
 
 命令结束后，提醒用户：Web 完全退出并重启 `dsh web`；桌面端退出托盘再打开 EXE。各自点会话标题旁的 **dsh-purge**，在「清洗」里点「应用」。然后停止。
@@ -276,7 +276,7 @@ $cands | Select-Object -Unique | Where-Object { $_ -and (Test-Path (Join-Path $_
 git clone https://github.com/realMisakaMikoto/dsh-purge.git "$DSH_HOME/plugins/dsh-purge"
 ```
 
-没有 git：下载 [master.tar.gz](https://github.com/realMisakaMikoto/dsh-purge/archive/refs/heads/master.tar.gz)，解压后把 `dsh-purge-master` 改名为 `dsh-purge`，整夹放到 `plugins` 下。已有本仓库副本就复制整个目录，不要只拷几个 `.js`。
+没有 git：下载 [v1.1.76.tar.gz](https://github.com/realMisakaMikoto/dsh-purge/archive/refs/tags/v1.1.76.tar.gz)，解压后把 `dsh-purge-1.1.76` 改名为 `dsh-purge`，整夹放到 `plugins` 下。已有本仓库副本就复制整个目录，不要只拷几个 `.js`。
 
 **3. 只改对应 profile 的 `package.json`，先备份。** Web → `$DSH_HOME/profiles/web/package.json`；桌面 → `$DSH_HOME/profiles/desktop/package.json`。**只追加两处**，原有依赖和 bundle 全部留着：
 
@@ -570,7 +570,7 @@ flowchart LR
 - 改动范围是本机 `@deepseek-ai/*` 包里的渲染文案、默认策略和执行逻辑，以及用户目录下的覆盖文件与规则集。
 - 升级后原文对不上会显示跳过，这次应用仍算完成，不会乱改。
 - 不改动非 `@deepseek-ai` 的第三方插件源仓库（启动时的 CMD 无感会**尽力**修补已装的 doctor / market / 梁神 / mnemon，属运行时补丁）。
-- 安装本 fork：`dsh plugin --profile web add https://github.com/realMisakaMikoto/dsh-purge/archive/refs/heads/master.tar.gz`（`--profile desktop` 同理）。当前目录已是本仓库时用 `add .`。
+- 安装本 fork：`dsh plugin --profile web add https://github.com/realMisakaMikoto/dsh-purge/archive/refs/tags/v1.1.76.tar.gz`（`--profile desktop` 同理）。当前目录已是本仓库时用 `add .`。
 
 ---
 
@@ -592,3 +592,8 @@ node bin/dsh-purge.js --doctor --repo /path/to/linked/checkout --json
 doctor 全部检查通过时退出码为 0，否则为 1。只有健康状态可以保存基线，并记录宿主路径以避免混用不同安装的基线。`--repo` 用于链接到工作副本的开发安装；包缺失、链接失效或独立复制目录都不会通过该检查。
 
 `--json` 仅支持状态和体检命令。与应用、还原、编辑或卸载操作组合时会报错，不执行该操作。
+
+
+## 可恢复更新（1.1.76）
+
+正式通道仅跟随附件完整的已发布 Release，每次固定同一提交；测试通道继续跟随 beta。更新先备份文件，包含 skills/scripts，新宿主验证生效后才提交版本状态。Git 本地有修改时停止更新。保留最近两份已验证的旧版备份，异常或带链接的备份保留并报告。启动失败按记录恢复文件，最多重启恢复一次。更新器不递归清理宿主或 runtime 目录。状态包含操作编号、阶段、验证和恢复结果。需要 Node >=22.13.0 及可用的 node:sqlite。

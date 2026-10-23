@@ -1,3 +1,23 @@
+# 1.1.76
+
+## 中文
+
+- 新增持久化更新事务、完整文件校验、跨进程锁和失败自动恢复；补齐 skills/scripts。
+- 保留最近两份旧版备份，清理拒绝目录链接，禁止递归删除宿主和 runtime 目录。
+- 新增重启后真实生效验证；失败最多恢复并启动旧版一次，避免循环重启。
+- 正式通道仅使用已发布 Release，固定提交并校验 ZIP SHA-256；发布先上传完整附件再公开。
+- 统一 Node >=22.13.0，doctor 增加 SQLite 能力检查，PR 和发布增加 Windows/Linux 及两个 Node 版本的回归检查。
+- 保留现有补丁、证据账本、会话回退和 [@Heaven-Heart](https://github.com/Heaven-Heart) 的多宿主贡献。
+
+## English
+
+- Stage and verify full plugin payloads, journal individual changes, lock concurrent operations, and restore failures without recursively removing host/runtime directories.
+- Retain two verified rollback snapshots; refuse linked cleanup targets and stop on local Git edits.
+- Verify the new host identity, version, and patch activation after restart; permit only one recovery launch.
+- Stable updates follow published Releases pinned to a commit, verify archive SHA-256, and publish complete ZIP/checksum assets before making a release public.
+- Require Node >=22.13.0, probe SQLite in doctor, and run PR/release regressions on Windows/Linux with Node 22.13.0 and 24.x.
+- Preserve existing patches, evidence, rewind, and Heaven-Heart's multi-host contribution.
+
 # 1.1.75
 
 ## 中文

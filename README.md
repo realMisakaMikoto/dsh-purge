@@ -4,7 +4,7 @@
 
 <h1 align="center">⚔️ DeepSeek Harness cybersecurity red-team tool (dsh-purge)</h1>
 
-<p align="center"><strong>Version 1.1.75</strong></p>
+<p align="center"><strong>Version 1.1.76</strong></p>
 
 <p align="center">
   <em>DeepSeek Harness jailbreak: every model, swap prompts per model. Default prompt for 小码酱. Please star ⭐ If you build on this, see Attribution required.</em>
@@ -17,7 +17,7 @@
   <a href="https://deepseek.stream/plugins/dsh-purge"><img src="https://img.shields.io/badge/Hub-dsh--purge-1a73e8" alt="DeepSeek Harness Hub"></a>
   <a href="https://www.deepseek.com/harness/"><img src="https://img.shields.io/badge/dsh-0.2.x-blue" alt="DSH"></a>
   <br>
-  <img src="https://img.shields.io/badge/Node.js-%3E%3D18-339933?logo=node.js&logoColor=fff" alt="Node.js">
+  <img src="https://img.shields.io/badge/Node.js-%3E%3D22.13.0-339933?logo=node.js&logoColor=fff" alt="Node.js">
   <img src="https://img.shields.io/badge/JavaScript-F7DF1E?logo=javascript&logoColor=000" alt="JavaScript">
 </p>
 
@@ -37,7 +37,7 @@
 >
 > Adding the plugin to a profile does not patch the host. Click **dsh-purge** beside the session title → **Clean** → **Apply**. A successful Apply restarts; an unfinished Apply does not. After the restart, start a new chat — that is when the inject enters the session.
 >
-> Node.js **≥18**. Windows no-flash needs **Node ≥22**. Hub one-click and the commands below both install the npm package `dsh-purge`.
+> Node.js **>=22.13.0** with working node:sqlite is required. Install this community build from its GitHub Release; doctor checks both runtime capabilities.
 
 ## Contents
 
@@ -178,13 +178,13 @@ Web and the official desktop EXE are the two maintained hosts. **Install both. A
 **Web (official `dsh web`)**
 
 ```sh
-dsh plugin --profile web add https://github.com/realMisakaMikoto/dsh-purge/archive/refs/heads/master.tar.gz
+dsh plugin --profile web add https://github.com/realMisakaMikoto/dsh-purge/archive/refs/tags/v1.1.76.tar.gz
 ```
 
 **Desktop (official EXE)**
 
 ```sh
-dsh plugin --profile desktop add https://github.com/realMisakaMikoto/dsh-purge/archive/refs/heads/master.tar.gz
+dsh plugin --profile desktop add https://github.com/realMisakaMikoto/dsh-purge/archive/refs/tags/v1.1.76.tar.gz
 ```
 
 Both commands install **this repository's fork**, not the upstream npm package of the same name: the target is the tarball above, so the 0.2.x compatibility patches are included. If this directory is already a clone, use `add .` instead with the same `--profile`. If `dsh` is not on PATH, use [Manual install](#manual).
@@ -194,7 +194,7 @@ The [dsh-plugin.org](https://dsh-plugin.org/plugins/yujunzhixue/dsh-purge) entry
 For the desktop client you can also click the button (`dsh://` deep link):
 
 <p align="center">
-  <a href="dsh://plugin/install?id=dsh-purge&name=dsh-purge&version=1.1.71&repo=realMisakaMikoto%2Fdsh-purge&permissions=%E7%B3%BB%E7%BB%9F%E6%8F%90%E7%A4%BA%E8%AF%8D%E6%B3%A8%E5%85%A5%2C%E6%9C%AC%E6%9C%BA%E8%A1%A5%E4%B8%81%2C%E8%AE%BE%E7%BD%AE%E9%A1%B5&downloadUrl=https%3A%2F%2Fgithub.com%2FrealMisakaMikoto%2Fdsh-purge%2Farchive%2Frefs%2Fheads%2Fmaster.tar.gz"><strong>Install in desktop client</strong></a>
+  <a href="dsh://plugin/install?id=dsh-purge&name=dsh-purge&version=1.1.76&repo=realMisakaMikoto%2Fdsh-purge&permissions=%E7%B3%BB%E7%BB%9F%E6%8F%90%E7%A4%BA%E8%AF%8D%E6%B3%A8%E5%85%A5%2C%E6%9C%AC%E6%9C%BA%E8%A1%A5%E4%B8%81%2C%E8%AE%BE%E7%BD%AE%E9%A1%B5&downloadUrl=https%3A%2F%2Fgithub.com%2FrealMisakaMikoto%2Fdsh-purge%2Farchive%2Frefs%2Ftags%2Fv1.1.76.tar.gz"><strong>Install in desktop client</strong></a>
 </p>
 
 ### After the command: three steps
@@ -229,13 +229,13 @@ If `dsh` is not on PATH, tell the user and stop. Both commands take the tarball 
 **Web (official `dsh web`)**
 
 ```sh
-dsh plugin --profile web add https://github.com/realMisakaMikoto/dsh-purge/archive/refs/heads/master.tar.gz
+dsh plugin --profile web add https://github.com/realMisakaMikoto/dsh-purge/archive/refs/tags/v1.1.76.tar.gz
 ```
 
 **Desktop (official EXE)**
 
 ```sh
-dsh plugin --profile desktop add https://github.com/realMisakaMikoto/dsh-purge/archive/refs/heads/master.tar.gz
+dsh plugin --profile desktop add https://github.com/realMisakaMikoto/dsh-purge/archive/refs/tags/v1.1.76.tar.gz
 ```
 
 After the commands finish, tell the user to fully quit and restart `dsh web`, and to quit the desktop tray then reopen the EXE. On each host, open **dsh-purge** beside the session title and **Apply** on **Clean**. Then stop.
@@ -276,7 +276,7 @@ $cands | Select-Object -Unique | Where-Object { $_ -and (Test-Path (Join-Path $_
 git clone https://github.com/realMisakaMikoto/dsh-purge.git "$DSH_HOME/plugins/dsh-purge"
 ```
 
-Without git: download [master.tar.gz](https://github.com/realMisakaMikoto/dsh-purge/archive/refs/heads/master.tar.gz), extract, rename `dsh-purge-master` → `dsh-purge`, and place it under `plugins`. If you already have a clone, copy the whole tree — not a few `.js` files.
+Without git: download [v1.1.76.tar.gz](https://github.com/realMisakaMikoto/dsh-purge/archive/refs/tags/v1.1.76.tar.gz), extract, rename `dsh-purge-1.1.76` → `dsh-purge`, and place it under `plugins`. If you already have a clone, copy the whole tree — not a few `.js` files.
 
 **3. Edit only that profile's `package.json` — back it up first.** Web → `$DSH_HOME/profiles/web/package.json`; desktop → `$DSH_HOME/profiles/desktop/package.json`. Add **only two things**, keeping every existing dependency and bundle:
 
@@ -561,7 +561,7 @@ What changed, and the zip, are on [Releases](https://github.com/realMisakaMikoto
 - Scope is rendered copy, defaults, and runtime logic inside local `@deepseek-ai/*` packages, plus override files and rule sets under the harness home.
 - After an upgrade, unmatched originals show as skipped. Apply still completes, and those files are left unchanged.
 - Third-party plugin *source repos* outside `@deepseek-ai` are left alone (CMD silence may **best-effort** patch installed doctor / market / liangshen / mnemon at runtime).
-- Install this fork: `dsh plugin --profile web add https://github.com/realMisakaMikoto/dsh-purge/archive/refs/heads/master.tar.gz` (same for `--profile desktop`). From this repo, `add .`.
+- Install this fork: `dsh plugin --profile web add https://github.com/realMisakaMikoto/dsh-purge/archive/refs/tags/v1.1.76.tar.gz` (same for `--profile desktop`). From this repo, `add .`.
 
 ---
 
@@ -583,3 +583,8 @@ Status lists each installation and chooses an actually running desktop only when
 Doctor exits 0 only for a healthy host and 1 for a failed check. Saving a baseline requires a healthy host; the saved host path prevents comparing different installations. Use `--repo` for development installations that resolve to that checkout. A missing package or an independent copy fails that explicit checkout check.
 
 `--json` is supported for status and doctor only. Combining it with Apply, Revert, Edit, or Uninstall is rejected without performing that operation.
+
+
+## Reliable updates (1.1.76)
+
+Stable follows complete published Releases and pins each operation to one commit. The beta channel follows beta. Updates back up files, include skills/scripts, and commit installation metadata only after a new host verifies activation. Git local edits stop updates. The latest two verified rollback snapshots are retained; linked or suspicious backup directories are preserved with a warning. Failed startup restores recorded files and permits one recovery launch. No recursive host/runtime directory cleanup is performed by this updater. Status exposes the operation ID, phase, verification, rollback result, and error. Node >=22.13.0 and working node:sqlite are required.

@@ -122,6 +122,7 @@ try {
   fs.mkdirSync(path.join(cliRoot, "lib"));
   fs.copyFileSync(path.join(root, "bin/dsh-purge.js"), path.join(cliRoot, "bin/dsh-purge.js"));
   fs.copyFileSync(path.join(root, "lib/doctor.js"), path.join(cliRoot, "lib/doctor.js"));
+  fs.copyFileSync(path.join(root, "lib/runtime-check.js"), path.join(cliRoot, "lib/runtime-check.js"));
   write(path.join(cliRoot, "package.json"), '{"type":"module"}');
   const stateFile = path.join(cliRoot, "state.json");
   write(stateFile, JSON.stringify(healthy));

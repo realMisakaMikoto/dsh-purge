@@ -236,6 +236,9 @@ window.__ModuleLoader__.load({ id: "dsh-purge", factory: (require) => {
 			"update.latest": "已是最新（{version}）",
 			"update.available": "有新版本 {remote}，当前 {local}",
 			"update.pinned": "已固定在 {version}，通道最新是 {remote}",
+			"operation.waiting": "正在处理，等待重启和生效验证…",
+			"operation.verified": "已验证补丁生效",
+			"operation.rolledBack": "更新失败，已自动恢复旧版；详情见操作日志",
 			"update.done": "已更新到 {version}",
 			"update.restarting": "已还原并写入新补丁，正在重启…",
 			"update.fullQuit": "补丁已写入。点「重启」后客户端会自己重新打开。",
@@ -253,8 +256,8 @@ window.__ModuleLoader__.load({ id: "dsh-purge", factory: (require) => {
 			"update.pick": "选择版本",
 			"update.tip": "最新",
 			"update.current": "当前",
-			"update.confirmSwitch": "切换到 {version}？之后可再切回另一通道或其它版本。本地未提交的插件改动不会保留。",
-			"update.confirmChannel": "切换到{version}？会按该通道重新安装插件，本地未提交的插件改动不会保留。",
+			"update.confirmSwitch": "切换到 {version}？之后可再切回另一通道或其它版本。存在本地修改时会停止更新。",
+			"update.confirmChannel": "切换到{version}？会按该通道重新安装插件，存在本地修改时会停止更新。",
 			"metric.version": "版本",
 			"action.apply": "应用",
 			"action.revert": "还原",
@@ -574,6 +577,9 @@ window.__ModuleLoader__.load({ id: "dsh-purge", factory: (require) => {
 			"update.latest": "Up to date ({version})",
 			"update.available": "Update {remote} available (now {local})",
 			"update.pinned": "Pinned at {version}; channel latest is {remote}",
+			"operation.waiting": "Waiting for restart and activation verification...",
+			"operation.verified": "Patch activation verified",
+			"operation.rolledBack": "Update failed; the previous version was restored. See the operation log.",
 			"update.done": "Updated to {version}.",
 			"update.restarting": "Restored the old patches, wrote the new ones, and restarting…",
 			"update.fullQuit": "Patches are written. Click Restart and the client opens again by itself.",
@@ -591,8 +597,8 @@ window.__ModuleLoader__.load({ id: "dsh-purge", factory: (require) => {
 			"update.pick": "Select version",
 			"update.tip": "latest",
 			"update.current": "current",
-			"update.confirmSwitch": "Switch to {version}? You can switch back later. Uncommitted plugin edits will not be kept.",
-			"update.confirmChannel": "Switch to {version}? The plugin will be reinstalled from that channel. Uncommitted plugin edits will not be kept.",
+			"update.confirmSwitch": "Switch to {version}? You can switch back later. Local edits stop the update.",
+			"update.confirmChannel": "Switch to {version}? The plugin will be reinstalled from that channel. Local edits stop the update.",
 			"metric.version": "Version",
 			"action.apply": "Apply",
 			"action.revert": "Restore",
@@ -1430,7 +1436,8 @@ body:not([data-ds-dark-theme]) .dshp-auth-ops button.primary{background:var(--ds
 				if (d.hasUpdate) text = tr("update.available", { remote, local: version });
 				if (d.pinned && d.hasUpdate) text = tr("update.pinned", { version, remote });
 				if (kind === "switched" || kind === "channel") text = tr("update.switched", { version: d.localVersion || d.remoteVersion || "—" });
-				if (kind === "done") text = tr("update.done", { version: d.localVersion || d.remoteVersion || "—" });
+				if (kind === "done" && !d.verification_pending) text = tr("update.done", { version: d.localVersion || d.remoteVersion || "—" });
+				if (d.verification_pending) text = tr("operation.waiting");
 				if (d.error) text = d.error;
 				setUpdateNotice({ kind: d.ok === false || d.error ? "error" : "ok", text });
 			}, []);
@@ -1465,6 +1472,7 @@ body:not([data-ds-dark-theme]) .dshp-auth-ops button.primary{background:var(--ds
 					.then((d) => {
 						if (!d || (d.ok === false && d.error)) throw new Error((d && d.error) || "update failed");
 						applyUpdateInfo(d, tr, kind);
+						if (d.verification_pending) return d;
 						if (d.needsFullQuit) {
 							suppressRestartAsk.current = false;
 							setAskRestart(true);
@@ -1497,7 +1505,7 @@ body:not([data-ds-dark-theme]) .dshp-auth-ops button.primary{background:var(--ds
 
 			const doUpdate = useCallback((id) => {
 				const lane = id === "beta" ? "beta" : "stable";
-				postUpdate({ op: "apply", ref: lane === "beta" ? "beta" : "master", channel: lane }, "done", id).catch(() => {});
+				postUpdate({ op: "apply", ref: lane === "beta" ? "beta" : "stable", channel: lane }, "done", id).catch(() => {});
 			}, [postUpdate]);
 
 			const changeChannel = useCallback((next) => {
@@ -1582,6 +1590,23 @@ body:not([data-ds-dark-theme]) .dshp-auth-ops button.primary{background:var(--ds
 				const timer = setTimeout(() => { loadAll(); }, 5000);
 				return () => clearTimeout(timer);
 			}, [loadAll]);
+			const operationId = (state && state.operation && state.operation.operation_id) || (updateInfo && updateInfo.operation_id);
+			useEffect(() => {
+				if (!operationId) return;
+				let disposed = false, inflight = false;
+				const poll = () => {
+					if (disposed || inflight) return;
+					inflight = true;
+					apiJson("/dsh-purge/status").then((data) => {
+						if (disposed || !data || !data.ok) return;
+						setState(data);
+						const op = data.operation;
+						if (op && ["verified", "rolled_back", "failed"].includes(op.phase)) clearInterval(timer);
+					}).catch(() => {}).finally(() => { inflight = false; });
+				};
+				const timer = setInterval(poll, 2000); poll();
+				return () => { disposed = true; clearInterval(timer); };
+			}, [operationId]);
 
 			const rejectNeedPrompt = useCallback((tr) => {
 				setAskRestart(false);
@@ -1815,6 +1840,8 @@ body:not([data-ds-dark-theme]) .dshp-auth-ops button.primary{background:var(--ds
 			const sealedReady = !located && desktopLikely && !!(s && (s.asar_still_sealed || s.desktop_exe || s.desktop_install));
 			const patchesLost = !!(s && s.patches_lost);
 			const activationPending = !!(s && (s.activation_pending || (located && s.asar_still_sealed)));
+			const operation = s && s.operation;
+			const operationText = operation ? (operation.phase === "rolled_back" ? t("operation.rolledBack") : operation.error || (operation.phase === "verified" ? t("operation.verified") : t("operation.waiting"))) : "";
 			const tally = located ? tallyPatches(patchRowsOf(s)) : { applied: 0, pending: 0, unmatched: 0, skipped: 0, total: 0 };
 			const total = tally.total;
 			const applied = tally.applied;
@@ -1930,6 +1957,7 @@ body:not([data-ds-dark-theme]) .dshp-auth-ops button.primary{background:var(--ds
 				),
 				h("div", { className: "dshp-bar", "aria-hidden": "true" }, h("i", { style: { width: pct + "%" } })),
 				activationPending ? noticeNode({ kind: "error", text: t("activation.pending") }) : null,
+				operationText ? noticeNode({ kind: operation.error ? "error" : "ok", text: operationText }) : null,
 				h(PatchGroups, { state: s }),
 				h(HooksDenySection, { onSaved: loadAll }),
 				h("div", { className: "dshp-row", style: { marginTop: 14 } },
