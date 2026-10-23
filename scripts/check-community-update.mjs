@@ -138,8 +138,8 @@ try {
   const planned = await updater.applyUpdate(undefined, { ref: "stable", launch: false, state });
   const plannedFile = path.join(home, "dsh-purge/operations", planned.operation_id, "journal.json");
   const destinations = load(plannedFile).destinations;
-  assert.ok(destinations.includes(fs.realpathSync(archive)));
-  assert.ok(destinations.includes(fs.realpathSync(installed)));
+  assert.ok(destinations.includes(fs.realpathSync.native(archive)));
+  assert.ok(destinations.includes(fs.realpathSync.native(installed)));
   const plannedResult = await runOperation(plannedFile, fixtureActions);
   assert.equal(plannedResult.phase, "verified", plannedResult.error);
   assert.equal(JSON.parse(fs.readFileSync(path.join(profile, "package.json"))).dependencies["dsh-purge"], profilePackage.dependencies["dsh-purge"]);
