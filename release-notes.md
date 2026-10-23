@@ -1,3 +1,18 @@
+# 1.1.78
+
+## 中文
+
+- 修复异步文件日志重入：备份和写日志期间不再再次拦截日志自身的文件操作。
+- 日志原子替换对 Windows EPERM/EBUSY/EACCES 短暂占用执行有界重试，永久失败仍停止并保留恢复数据。
+- 增加大体积中文日志下的异步 Buffer 写入、复制、改名和恢复回归，并在 DSH 自带 Node 上验证。
+
+## English
+
+- Prevent async filesystem journaling from reentering its own backup/journal writes.
+- Retry transient Windows journal replacement locks with a bounded delay; permanent failures retain recovery data.
+- Defer startup version markers until activation is verified, reconcile recognized legacy markers, and allow repeated restoration of already-removed new files.
+- Cover async Buffer writes, copies, renames, and restoration with a large Unicode journal, including validation on the bundled DSH Node runtime.
+
 # 1.1.77
 
 ## 中文
