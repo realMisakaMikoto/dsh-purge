@@ -107,6 +107,8 @@ try {
     const result = await runOperation(fx.file, { ...adapters, recover: true });
     assert.equal(result.phase, "rolled_back");
     assert.equal(journal.readJson(path.join(fx.plugin, "package.json")).version, "1.0.0");
+    journal.restoreFiles(result);
+    journal.phase(result, "rolled_back");
     pass("interrupted durable journal resumes restoration instead of retrying installation");
   }
   {
@@ -241,6 +243,44 @@ try {
     assert.equal(fs.readFileSync(hostFile, "utf8"), "original selected host");
     journal.phase(tx, "rolled_back"); journal.releaseLocks(tx);
     pass("the real transactional runner patches only its selected host and journals the change");
+  }
+  {
+    const fx = fixture("legacy-boot-markers");
+    const stamp = path.join(fx.home, "dsh-purge/installed-rev");
+    const applied = path.join(fx.home, "dsh-purge/applied.json");
+    write(stamp, "apply:1.0.0\n");
+    write(applied, JSON.stringify({ version: "1.0.0", sha: "apply:1.0.0", at: new Date().toISOString() }));
+    fx.tx.metadata.push({ path: stamp, content: fx.tx.target.sha + "\n" },
+      { path: applied, content: JSON.stringify({ version: fx.tx.target.version, sha: fx.tx.target.sha, at: new Date().toISOString() }) });
+    journal.capture(fx.tx, stamp, "metadata"); journal.capture(fx.tx, applied, "metadata"); journal.save(fx.tx);
+    const result = await runOperation(fx.file, { ...adapters, wait: async () => {
+      write(stamp, "apply:1.1.0\n");
+      write(applied, JSON.stringify({ version: "1.1.0", sha: "apply:1.1.0", at: new Date().toISOString() }));
+    } });
+    assert.equal(result.phase, "verified", result.error);
+    assert.equal(fs.readFileSync(stamp, "utf8").trim(), fx.tx.target.sha);
+    assert.equal(journal.readJson(applied).sha, fx.tx.target.sha);
+    pass("known legacy startup markers are reconciled only after activation verification");
+  }
+  {
+    const fx = fixture("boot-write-guard");
+    const saved = Object.fromEntries(["DSH_HOME", "DSH_PURGE_OPERATION", "DSH_PURGE_BOOT_NONCE"].map((name) => [name, process.env[name]]));
+    const stamp = path.join(fx.home, "dsh-purge/installed-rev");
+    write(stamp, "apply:1.0.0\n");
+    journal.phase(fx.tx, "waiting_boot");
+    try {
+      process.env.DSH_HOME = fx.home; process.env.DSH_PURGE_OPERATION = fx.tx.id; process.env.DSH_PURGE_BOOT_NONCE = fx.tx.nonce;
+      const reapply = await import("../lib/reapply.js");
+      reapply.markPatchesApplied(fx.tx.target.sha);
+      assert.equal(fs.readFileSync(stamp, "utf8"), "apply:1.0.0\n");
+      assert.equal(fs.existsSync(path.join(fx.home, "dsh-purge/applied.json")), false);
+      journal.phase(fx.tx, "verified"); journal.releaseLocks(fx.tx);
+      reapply.markPatchesApplied(fx.tx.target.sha);
+      assert.equal(fs.readFileSync(stamp, "utf8").trim(), fx.tx.target.sha);
+    } finally {
+      for (const [name, value] of Object.entries(saved)) if (value === undefined) delete process.env[name]; else process.env[name] = value;
+    }
+    pass("a pending boot cannot seed installation metadata before its worker commits");
   }
   {
     const server = http.createServer((_req, res) => setTimeout(() => { res.setHeader("content-type", "application/json"); res.end('{"plugin_version":"fixture","patches_active":true}'); }, 1800));
