@@ -1,3 +1,15 @@
+# 1.1.79
+
+## 中文
+
+- 补齐旧版回退兼容：旧宿主启动时可能保留上一版提交号，现在可识别这种已知的内部版本标记，验证通过后统一提交正确版本。
+- 同时覆盖占位标记和完整提交号的回归，不放宽用户配置文件的冲突检查。
+
+## English
+
+- Recognize legacy applied markers that retain the previously installed commit during a version rollback; commit the selected revision only after activation verification.
+- Cover both placeholder and full-commit startup markers while keeping arbitrary profile/configuration edits protected.
+
 # 1.1.78
 
 ## 中文
