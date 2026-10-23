@@ -8,6 +8,7 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { PAYLOAD_NAMES, digest, load } from "../lib/update-transaction.js";
 import { runOperation } from "../lib/update-worker.js";
+import { createHash } from "node:crypto";
 
 // All downloads and host actions are replaced by disposable fixtures.
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
@@ -68,6 +69,7 @@ try {
         { ...release, tag_name: "v7.0.0", assets: [] }, release,
       ]);
     } else if (address.includes("/releases/download/")) body = corrupt ? Buffer.from("broken archive") : zip;
+    else if (address.includes("/tar.gz/" + sha)) body = Buffer.from("fixture tarball");
     else if (address.endsWith("/commits/v1.1.73")) body = JSON.stringify({ sha });
     else if (address.includes("/commits/beta")) { status = 404; body = "missing beta"; }
     else if (address.includes("/commits/v1.1.73.atom")) body = "<id>tag:github.com,2008:Grit::Commit/" + sha + "</id>";
@@ -104,6 +106,17 @@ try {
   const archive = path.join(temp, "archive"), installed = path.join(temp, "installed"), profile = path.join(home, "profiles/web");
   copyPlugin(archive); copyPlugin(installed); fs.mkdirSync(profile, { recursive: true });
   fs.writeFileSync(path.join(profile, "package.json"), JSON.stringify({ dependencies: { "dsh-purge": "old" } }));
+  // JSON is a valid YAML document; this parser adapter keeps the test dependency-free.
+  // The production adapter is the host's YAML parser and receives the same document API.
+  const yamlDir = path.join(profile, "node_modules/yaml");
+  fs.mkdirSync(yamlDir, { recursive: true });
+  fs.writeFileSync(path.join(yamlDir, "index.js"), "exports.parseDocument = text => { const value=JSON.parse(text); return {errors:[],toJS:()=>value,setIn:(keys,data)=>{let obj=value;for(const k of keys.slice(0,-1))obj=obj[k]||(obj[k]={});obj[keys.at(-1)]=data},toString:()=>JSON.stringify(value,null,2)} };");
+  const qualifier = "(@deepseek-ai/cordis@4.0.1)";
+  const lockFile = path.join(profile, "pnpm-lock.yaml");
+  fs.writeFileSync(lockFile, JSON.stringify({ lockfileVersion: "9.0",
+    importers: { ".": { dependencies: { "dsh-purge": { specifier: "old", version: "1.1.72" + qualifier } } } },
+    packages: { "dsh-purge@1.1.72": { resolution: { integrity: "old" }, engines: { node: ">=18" } } },
+    snapshots: { ["dsh-purge@1.1.72" + qualifier]: { dependencies: { "@deepseek-ai/cordis": "4.0.1" } } } }));
   const pending = await updater.applyUpdate([{ kind: "zip", dir: archive }, { kind: "dsh", dir: installed, profileDir: profile }],
     { ref: "v1.1.73", pin: "v1.1.73", launch: false, state, primary: installed });
   assert.equal(JSON.parse(fs.readFileSync(path.join(profile, "package.json"))).dependencies["dsh-purge"], "old");
@@ -111,7 +124,26 @@ try {
   assert.equal(archiveResult.phase, "verified", archiveResult.error);
   assert.equal(JSON.parse(fs.readFileSync(path.join(profile, "package.json"))).dependencies["dsh-purge"], "https://codeload.github.com/" + repo + "/tar.gz/" + sha);
   assert.equal(JSON.parse(fs.readFileSync(path.join(home, "dsh-purge/channel.json"))).pin, "v1.1.73");
-  pass("archive/profile updates use the same pinned commit and defer profile state until verification");
+  const updatedLock = JSON.parse(fs.readFileSync(lockFile));
+  const url = "https://codeload.github.com/" + repo + "/tar.gz/" + sha;
+  assert.equal(updatedLock.importers["."].dependencies["dsh-purge"].version, url + qualifier);
+  assert.equal(updatedLock.packages["dsh-purge@" + url].resolution.integrity, "sha512-" + createHash("sha512").update("fixture tarball").digest("base64"));
+  assert.ok(updatedLock.snapshots["dsh-purge@" + url + qualifier]);
+  pass("archive/profile updates pin one commit and commit a complete consistent lockfile after verification");
+  const profilePackage = JSON.parse(fs.readFileSync(path.join(profile, "package.json")));
+  profilePackage.dependencies["dsh-purge"] = "file:" + path.relative(profile, archive).replace(/\\/g, "/");
+  fs.writeFileSync(path.join(profile, "package.json"), JSON.stringify(profilePackage));
+  fs.unlinkSync(lockFile);
+  fs.symlinkSync(installed, path.join(profile, "node_modules/dsh-purge"), "junction");
+  const planned = await updater.applyUpdate(undefined, { ref: "stable", launch: false, state });
+  const plannedFile = path.join(home, "dsh-purge/operations", planned.operation_id, "journal.json");
+  const destinations = load(plannedFile).destinations;
+  assert.ok(destinations.includes(fs.realpathSync(archive)));
+  assert.ok(destinations.includes(fs.realpathSync(installed)));
+  const plannedResult = await runOperation(plannedFile, fixtureActions);
+  assert.equal(plannedResult.phase, "verified", plannedResult.error);
+  assert.equal(JSON.parse(fs.readFileSync(path.join(profile, "package.json"))).dependencies["dsh-purge"], profilePackage.dependencies["dsh-purge"]);
+  pass("file-source installations update both the source and the actual resolved profile copy");
   corrupt = true;
   await assert.rejects(updater.applyUpdate([{ kind: "zip", dir: archive }], { ref: "stable", launch: false, state, primary: archive }), /checksum/);
   assert.equal(fs.readFileSync(path.join(archive, "scripts/update-fixture.txt"), "utf8"), "new script");
