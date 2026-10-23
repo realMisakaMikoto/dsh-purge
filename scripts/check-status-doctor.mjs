@@ -16,7 +16,11 @@ let runningExes = [];
 let groups = 0;
 const pass = (name) => { groups += 1; console.log("PASS " + name); };
 const write = (fp, text) => { fs.mkdirSync(path.dirname(fp), { recursive: true }); fs.writeFileSync(fp, text); };
-const key = (fp) => process.platform === "win32" ? path.resolve(fp).toLowerCase() : path.resolve(fp);
+const key = (fp) => {
+  let resolved = path.resolve(fp);
+  try { resolved = fs.realpathSync.native(fp); } catch { /* Missing fixture paths keep their absolute form. */ }
+  return process.platform === "win32" ? resolved.toLowerCase() : resolved;
+};
 try {
   const home = path.join(temp, "home");
   const web = path.join(temp, "web/node_modules/@deepseek-ai");
