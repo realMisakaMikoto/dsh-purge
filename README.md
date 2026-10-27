@@ -29,11 +29,11 @@
   <a href="README.md">English</a> | <a href="README.zh-CN.md">中文</a>
 </p>
 
-> **This is not the upstream project.** `realMisakaMikoto/dsh-purge` is a **community compatibility build** of [`YuJunZhiXue/dsh-purge`](https://github.com/YuJunZhiXue/dsh-purge) (MIT), kept working on **dsh 0.2.1-rc.2 / 0.2.1-rc.1 / 0.2.0-rc.2**. The original author's repository is upstream and owns the design, prompts, and skills; this fork carries only the 0.2.x compatibility patches (diff: [`FORK-NOTES.md`](FORK-NOTES.md)). Report 0.2.x breakage here; feature requests, upstream bugs, and the 0.1.x release tags stay with the original repo.
+> **This is not the upstream project.** `realMisakaMikoto/dsh-purge` is a **community compatibility build** of [`YuJunZhiXue/dsh-purge`](https://github.com/YuJunZhiXue/dsh-purge) (MIT), kept working on **dsh 0.2.1-rc.3 / 0.2.1-rc.2 / 0.2.1-rc.1 / 0.2.0-rc.2**. The original author's repository is upstream and owns the design, prompts, and skills; this fork carries only the 0.2.x compatibility patches (diff: [`FORK-NOTES.md`](FORK-NOTES.md)). Report 0.2.x breakage here; feature requests, upstream bugs, and the 0.1.x release tags stay with the original repo.
 
 > **Updates paused** (the original author's note; this fork still takes 0.2.x compatibility fixes). The author has no steady income for now because of work. Maintenance is on hold: no new releases, issues / PRs are not taken, and new dsh versions are not guaranteed. The repo stays usable; see Sponsor below. When maintenance resumes, this README will say so.
 
-> **Official Web and the official desktop app are both supported.** Official `dsh web` uses profile `web`. The official desktop EXE (DeepSeek Harness **0.2.1-rc.2**, **0.2.1-rc.1**, **0.2.0-rc.2**) uses profile `desktop`. Install and Apply them separately. This release targets dsh 0.2 only. Older dsh builds need the matching older plugin. Community Desktop is not maintained.
+> **Official Web and the official desktop app are both supported.** Official `dsh web` uses profile `web`. The official desktop EXE (DeepSeek Harness **0.2.1-rc.3**, **0.2.1-rc.2**, **0.2.1-rc.1**, **0.2.0-rc.2**) uses profile `desktop`. Install and Apply them separately. This release targets dsh 0.2 only. Older dsh builds need the matching older plugin. Community Desktop is not maintained.
 >
 > Adding the plugin to a profile does not patch the host. Click **dsh-purge** beside the session title → **Clean** → **Apply**. A successful Apply restarts; an unfinished Apply does not. After the restart, start a new chat — that is when the inject enters the session.
 >
@@ -163,7 +163,7 @@ WeChat name **「老张的ai科技」**, same handle as the live-room viewer boa
 
 The latest plugin supports **dsh 0.2** only — do not apply it to 0.1.x.
 
-- **dsh 0.2.1** (official desktop **0.2.1-rc.2** / **0.2.1-rc.1** / official `dsh web`): use **1.1.72** or newer. Verified on **0.2.1-rc.2**: 66 patches applied, 0 pending, redteam preset registered. This page installs that line.
+- **dsh 0.2.1** (official desktop **0.2.1-rc.3** / **0.2.1-rc.2** / **0.2.1-rc.1** / official `dsh web`): use **1.1.80** or newer. Verified on **0.2.1-rc.3**: 66 patches applied, 0 pending, `app/runtime` built from hard links (no junction), redteam preset registered. This page installs that line.
 - **dsh 0.2.0** (official desktop **0.2.0-rc.2**): use **1.1.40** or newer — same patch set; `#40` matches every complete-block shape seen so far.
 - **dsh 0.1.7** (incl. rc.1 / rc.2): use **1.1.39** or older — pick the tag on [upstream Releases](https://github.com/YuJunZhiXue/dsh-purge/releases).
 

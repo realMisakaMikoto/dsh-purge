@@ -1,7 +1,7 @@
-# FORK NOTES — 跑在 DSH 0.2.1-rc.2 / 0.2.1-rc.1 / 0.2.0-rc.2 上的可用副本
+# FORK NOTES — 跑在 DSH 0.2.1-rc.3 / 0.2.1-rc.2 / 0.2.1-rc.1 / 0.2.0-rc.2 上的可用副本
 
 上游：<https://github.com/YuJunZhiXue/dsh-purge>（MIT，见 `LICENSE`）
-本仓库版本：`dsh-purge 1.1.71`，针对 **DSH 0.2.1-rc.2 / 0.2.1-rc.1 / 0.2.0-rc.2（desktop / `resources/app`）** 打了四组修复。
+本仓库版本：`dsh-purge 1.1.71`，针对 **DSH 0.2.1-rc.3 / 0.2.1-rc.2 / 0.2.1-rc.1 / 0.2.0-rc.2（desktop / `resources/app`）** 打了四组修复。
 不是上游的发布分支，也不带任何本机数据（`$DSH_HOME/redteam/config.json`、密钥、engagement 记录都不在仓库里）。
 
 ## 修复 1 — `#40 COMPLETE_PROMPT_KEEP_INJECT` 命中不到 rc.2 的 complete 收尾块

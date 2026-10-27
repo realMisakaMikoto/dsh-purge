@@ -2,7 +2,8 @@
 
 ## 中文
 
-- 版本 **1.1.80**。适配 **DSH 0.2.1-rc.2 / 0.2.1-rc.1 / 0.2.0-rc.2**（官方桌面 EXE 与官方 `dsh web`）。
+- 版本 **1.1.80**。适配 **DSH 0.2.1-rc.3 / 0.2.1-rc.2 / 0.2.1-rc.1 / 0.2.0-rc.2**（官方桌面 EXE 与官方 `dsh web`）。
+- 已在 **DSH 0.2.1-rc.3** 实测：解包后 66 个补丁 applied、0 pending，#40 / #55 / #25 / #70 命中，`promptDropReport` 正常；`app/runtime` 由硬链接构成（`nlink=3`、`ino` 与真实 runtime 相同，非 junction）；红队预设 `registered`；两个回归测试全 PASS。
 - **不再建 `resources\app\runtime` junction**：解包后改为「重建目录结构 + 文件硬链接」。
   `app\runtime` 变成普通目录，删它只减少硬链接计数，真实 `resources\runtime`（office-skills 等 257 MB）不受影响；
   同卷不复制，跨卷/无法硬链接时逐文件回退复制（报告里分列 `links` / `copied` / `skipped`）。
@@ -19,7 +20,8 @@
 
 ## English
 
-- **1.1.80**. Targets **DSH 0.2.1-rc.2 / 0.2.1-rc.1 / 0.2.0-rc.2** (official desktop EXE and official `dsh web`).
+- **1.1.80**. Targets **DSH 0.2.1-rc.3 / 0.2.1-rc.2 / 0.2.1-rc.1 / 0.2.0-rc.2** (official desktop EXE and official `dsh web`).
+- Verified on **DSH 0.2.1-rc.3**: after unpacking, 66 patches applied and 0 pending; #40 / #55 / #25 / #70 matched; `promptDropReport` clean; `app/runtime` is hard-link based (`nlink=3`, same `ino` as the real runtime, not a junction); redteam preset `registered`; both regression suites green.
 - **No more `resources\app\runtime` junction**: after unpacking, the directory is rebuilt with per-file hard links.
   `app\runtime` is now a real directory, so deleting it only drops link counts and the real
   `resources\runtime` (257 MB incl. office-skills) survives. Same-volume installs copy nothing; cross-volume

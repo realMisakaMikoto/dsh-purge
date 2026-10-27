@@ -94,7 +94,7 @@
   "engines": {
     "node": ">=22.13.0"
   },
-  "dshTarget": "0.2.1-rc.2",
+  "dshTarget": "0.2.1-rc.3",
   "upstream": "https://github.com/YuJunZhiXue/dsh-purge",
   "fork": "community compatibility build for dsh 0.2.1-rc.1 / 0.2.0-rc.2; not the original project"
 }

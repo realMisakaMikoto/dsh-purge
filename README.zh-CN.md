@@ -29,11 +29,11 @@
   <a href="README.md">English</a> | <a href="README.zh-CN.md">中文</a>
 </p>
 
-> **这不是原作者的项目。** `realMisakaMikoto/dsh-purge` 是 [`YuJunZhiXue/dsh-purge`](https://github.com/YuJunZhiXue/dsh-purge)（MIT）的**社区兼容构建**，只为让插件在 **dsh 0.2.1-rc.2 / 0.2.1-rc.1 / 0.2.0-rc.2** 上继续可用。原作者仓库是上游，设计、提示词与技能都归上游；本仓库只带 0.2.x 兼容补丁（差异见 [`FORK-NOTES.md`](FORK-NOTES.md)）。0.2.x 的兼容问题提到这里；功能需求、上游 bug 和 0.1.x 的旧版本发布仍归原仓库。
+> **这不是原作者的项目。** `realMisakaMikoto/dsh-purge` 是 [`YuJunZhiXue/dsh-purge`](https://github.com/YuJunZhiXue/dsh-purge)（MIT）的**社区兼容构建**，只为让插件在 **dsh 0.2.1-rc.3 / 0.2.1-rc.2 / 0.2.1-rc.1 / 0.2.0-rc.2** 上继续可用。原作者仓库是上游，设计、提示词与技能都归上游；本仓库只带 0.2.x 兼容补丁（差异见 [`FORK-NOTES.md`](FORK-NOTES.md)）。0.2.x 的兼容问题提到这里；功能需求、上游 bug 和 0.1.x 的旧版本发布仍归原仓库。
 
 > **暂停更新**（上游作者原话；本仓库仍接收 0.2.x 兼容性修复）。作者因工作安排，近期没有稳定收入，项目维护暂时搁置：不再发版、暂不收 issue / PR，也不保证跟进新版 dsh。仓库仍可自用；赞助见下方。恢复维护时会在本 README 说明。
 
-> **官方 Web 和官方桌面端都支持。** 官方 `dsh web` 用 profile `web`；官方桌面 EXE（DeepSeek Harness **0.2.1-rc.2**、**0.2.1-rc.1**、**0.2.0-rc.2**）用 profile `desktop`。两边分开安装、分开点「应用」。当前版本只适配 dsh 0.2；更早的 dsh 用对应的老版本插件。社区桌面端不维护。
+> **官方 Web 和官方桌面端都支持。** 官方 `dsh web` 用 profile `web`；官方桌面 EXE（DeepSeek Harness **0.2.1-rc.3**、**0.2.1-rc.2**、**0.2.1-rc.1**、**0.2.0-rc.2**）用 profile `desktop`。两边分开安装、分开点「应用」。当前版本只适配 dsh 0.2；更早的 dsh 用对应的老版本插件。社区桌面端不维护。
 >
 > 写进 profile 还不会改宿主。点会话标题旁的 **dsh-purge** → **清洗** → **应用**。成功会自动重启；补丁没打完不重启。重启后新开一轮对话，注入才进当前会话。
 >
@@ -163,7 +163,7 @@ Harness 不只是把问题交给模型。它还会在运行时改提示词、审
 
 最新版只支持 **dsh 0.2**，不要拿它去打 0.1.x。
 
-- **dsh 0.2.1**（官方桌面 **0.2.1-rc.2** / **0.2.1-rc.1** / 官方 `dsh web`）：用 **1.1.72** 及以上。已在 **0.2.1-rc.2** 实测：66 个补丁 applied、0 pending、红队预设 registered。本页命令装的就是这一档。
+- **dsh 0.2.1**（官方桌面 **0.2.1-rc.3** / **0.2.1-rc.2** / **0.2.1-rc.1** / 官方 `dsh web`）：用 **1.1.80** 及以上。已在 **0.2.1-rc.3** 实测：66 个补丁 applied、0 pending、`app/runtime` 由硬链接构成（非 junction）、红队预设 registered。本页命令装的就是这一档。
 - **dsh 0.2.0**（官方桌面 **0.2.0-rc.2**）：用 **1.1.40** 及以上 — 同一套补丁；`#40` 目前见过的 complete 收尾块形状都命得中。
 - **dsh 0.1.7**（含 rc.1 / rc.2）：用 **1.1.39** 及更早 —— 在 [上游 Releases](https://github.com/YuJunZhiXue/dsh-purge/releases) 里选对应标签。
 
