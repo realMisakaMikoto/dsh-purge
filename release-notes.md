@@ -1,8 +1,8 @@
-# 1.1.73
+# 1.1.80
 
 ## 中文
 
-- 版本 **1.1.73**。适配 **DSH 0.2.1-rc.2 / 0.2.1-rc.1 / 0.2.0-rc.2**（官方桌面 EXE 与官方 `dsh web`）。
+- 版本 **1.1.80**。适配 **DSH 0.2.1-rc.2 / 0.2.1-rc.1 / 0.2.0-rc.2**（官方桌面 EXE 与官方 `dsh web`）。
 - **不再建 `resources\app\runtime` junction**：解包后改为「重建目录结构 + 文件硬链接」。
   `app\runtime` 变成普通目录，删它只减少硬链接计数，真实 `resources\runtime`（office-skills 等 257 MB）不受影响；
   同卷不复制，跨卷/无法硬链接时逐文件回退复制（报告里分列 `links` / `copied` / `skipped`）。
@@ -19,7 +19,7 @@
 
 ## English
 
-- **1.1.73**. Targets **DSH 0.2.1-rc.2 / 0.2.1-rc.1 / 0.2.0-rc.2** (official desktop EXE and official `dsh web`).
+- **1.1.80**. Targets **DSH 0.2.1-rc.2 / 0.2.1-rc.1 / 0.2.0-rc.2** (official desktop EXE and official `dsh web`).
 - **No more `resources\app\runtime` junction**: after unpacking, the directory is rebuilt with per-file hard links.
   `app\runtime` is now a real directory, so deleting it only drops link counts and the real
   `resources\runtime` (257 MB incl. office-skills) survives. Same-volume installs copy nothing; cross-volume
