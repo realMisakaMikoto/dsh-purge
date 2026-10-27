@@ -354,6 +354,67 @@ async function main() {
   }
 
   // ─────────────────────────────────────────────────────────────
+  console.log("\n[8] app/runtime 用硬链接树，不再建 junction");
+  {
+    const fx = makeFixture(root, { name: "s8-links" });
+    // 夹具默认带 junction（模拟老版本），换成新方案前先撤掉
+    fs.rmdirSync(path.join(fx.app, "runtime"));
+    const desk = await import(pathToFileURL(path.join(PLUGIN_ROOT, "lib", "desktop.js")).href);
+    const r = desk.ensureAppRuntimeLinks(fx.resources);
+    const target = path.join(fx.app, "runtime");
+    ok("ensureAppRuntimeLinks 返回成功", r.ok === true, JSON.stringify(r));
+    ok("app/runtime 是真实目录（不是链接）", !fs.lstatSync(target).isSymbolicLink() && fs.statSync(target).isDirectory(), "");
+    const srcStat = fs.statSync(path.join(fx.runtime, "office", "SKILL.md"));
+    const dstStat = fs.statSync(path.join(target, "office", "SKILL.md"));
+    ok(
+      "文件是硬链接（nlink>1 且 inode 一致）",
+      srcStat.nlink > 1 && (srcStat.ino === dstStat.ino || srcStat.ino === 0),
+      `nlink=${srcStat.nlink} ino=${srcStat.ino}/${dstStat.ino}`
+    );
+    fs.rmSync(fx.app, { recursive: true, force: true });
+    const intact = runtimeIntact(fx);
+    ok("删掉 app 目录后真实 runtime 完好", intact.ok, intact.detail);
+    const again = desk.ensureAppRuntimeLinks(fx.resources);
+    ok("app 不存在时返回 missing 而不是抛错", again.ok === false && again.reason === "missing", JSON.stringify(again));
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  console.log("\n[9] 带 legacy junction 的安装：更新前先撤链再回滚");
+  {
+    const fx = makeFixture(root, { name: "s9-legacy" });
+    ok("夹具里 app/runtime 是 junction（模拟老版本残留）", isJunction(path.join(fx.app, "runtime")), "");
+    const logPath = path.join(fx.dir, "update.log");
+    const prev = path.join(fx.resources, "app.dshpurge-prev");
+    writeFile(path.join(prev, "old-app-marker.txt"), "old-app");
+    const script = await renderHandoffScript(fx, { installer: makeSlowFakeInstaller(fx, 1), logPath });
+    const child = spawn("cscript.exe", ["//nologo", script], { cwd: fx.dir, stdio: "ignore", windowsHide: true });
+    await sleep(1800);
+    fs.mkdirSync(fx.app, { recursive: true });
+    fs.symlinkSync(fx.runtime, path.join(fx.app, "runtime"), "junction");
+    writeFile(path.join(fx.app, "recreated-marker.txt"), "recreated");
+    await done(child);
+    const log = readLog(logPath);
+    ok("更新前撤掉了 legacy junction", /dropped-legacy-runtime-link/.test(log), "");
+    ok("回滚后 runtime 完好", runtimeIntact(fx).ok, runtimeIntact(fx).detail);
+    ok("没有穿过 junction 的递归删除记录", !/cleared-recreated-app/.test(log), "");
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  console.log("\n[10] 占用未解除时不启动安装器（abort-busy，静态断言）");
+  {
+    const t = fs.readFileSync(path.join(PLUGIN_ROOT, "lib", "official-update.wscript"), "utf8");
+    ok("有 occupied() / killAll()", /function occupied\(/.test(t) && /function killAll\(/.test(t), "");
+    ok("有 abort-busy 分支", /abort-busy/.test(t), "");
+    ok(
+      "abort-busy 判断早于安装器调用",
+      t.indexOf("abort-busy") > -1 && t.indexOf("abort-busy") < t.indexOf("runInstaller(true)"),
+      `abort@${t.indexOf("abort-busy")} install@${t.indexOf("runInstaller(true)")}`
+    );
+    ok("不再只按 EXE 名枚举进程", !/Name = 'DeepSeek Harness\.exe'/.test(t), "");
+    ok("wscript 不再创建 junction", !/symlinkSync/.test(t), "");
+  }
+
+  // ─────────────────────────────────────────────────────────────
   console.log("\n────────────────────────────────────────");
   console.log(`PASS ${pass}  FAIL ${fail}`);
   if (fail > 0) console.log("失败项:\n  - " + failures.join("\n  - "));

@@ -12,21 +12,53 @@ function z(n) { return (n < 10 ? '0' : '') + n; }
 function stamp() { var d = new Date(); return d.getFullYear() + '-' + z(d.getMonth() + 1) + '-' + z(d.getDate()) + 'T' + z(d.getHours()) + ':' + z(d.getMinutes()) + ':' + z(d.getSeconds()); }
 function log(m) { var f = fso.OpenTextFile(logPath, 8, true); f.WriteLine(stamp() + ' ' + m); f.Close(); }
 function samePath(a, b) { return String(a || '').replace(/\//g, '\\').toLowerCase() === String(b || '').replace(/\//g, '\\').toLowerCase(); }
-function pids() { var out = []; var e = new Enumerator(wmi.ExecQuery("SELECT ProcessId, ExecutablePath FROM Win32_Process WHERE Name = 'DeepSeek Harness.exe'")); for (; !e.atEnd(); e.moveNext()) { var p = e.item(); if (samePath(p.ExecutablePath, exe)) out.push(p.ProcessId); } return out; }
+function underDir(fp, dir) {
+  var a = String(fp || '').replace(/\//g, '\\').toLowerCase();
+  var b = String(dir || '').replace(/\//g, '\\').toLowerCase();
+  if (!a || !b) return false;
+  if (a.charAt(a.length - 1) !== '\\') a = a + '\\';
+  if (b.charAt(b.length - 1) !== '\\') b = b + '\\';
+  return a.indexOf(b) === 0;
+}
+// Kill every process whose EXE lives under this install dir (DeepSeek Harness.exe, the bundled
+// node runtime, crashpad, elevate, ...). A leftover handle anywhere in the tree makes the
+// installer's MoveFileExW of the whole install dir fail with error 32.
+function occupied() {
+  var out = [];
+  var e = new Enumerator(wmi.ExecQuery("SELECT ProcessId, Name, ExecutablePath FROM Win32_Process WHERE ExecutablePath IS NOT NULL"));
+  for (; !e.atEnd(); e.moveNext()) {
+    var p = e.item();
+    if (samePath(p.ExecutablePath, exe) || underDir(p.ExecutablePath, installDir)) out.push({ pid: p.ProcessId, name: p.Name, path: p.ExecutablePath });
+  }
+  return out;
+}
+function killAll(items) {
+  for (var i = 0; i < items.length; i++) {
+    log('kill ' + items[i].pid + ' ' + items[i].name + ' ' + items[i].path);
+    sh.Run('taskkill.exe /F /T /PID ' + items[i].pid, 0, true);
+  }
+}
 function fileSize(fp) { if (!fso.FileExists(fp)) return -1; return fso.GetFile(fp).Size; }
 function fileStamp(fp) { if (!fso.FileExists(fp)) return ''; return String(fso.GetFile(fp).DateLastModified); }
 log('update-begin');
 WScript.Sleep(800);
-var list = pids();
-log('pids ' + list.join(','));
-for (var i = 0; i < list.length; i++) sh.Run('taskkill.exe /F /PID ' + list[i], 0, true);
+var list = occupied();
+log('pids ' + list.length);
+killAll(list);
 var deadline = new Date().getTime() + 20000;
 var left = list;
-while (new Date().getTime() < deadline) { left = pids(); if (left.length === 0) break; WScript.Sleep(200); }
+while (new Date().getTime() < deadline) { left = occupied(); if (left.length === 0) break; WScript.Sleep(300); }
 log('left ' + left.length);
 var asar = resources + '\\app.asar';
 var bak = asar + '.bak';
 var appDir = resources + '\\app';
+// Older builds left resources\app\runtime as a junction to resources\runtime. Either the
+// installer or FSO recursion then follows it and wipes the real runtime. rmdir removes the
+// link itself and fails harmlessly on a real directory, so it is safe to always try.
+if (fso.FolderExists(appDir)) {
+  sh.Run('cmd.exe /d /c rmdir "' + appDir + '\\runtime" 2>nul', 0, true);
+  log('dropped-legacy-runtime-link');
+}
 var movedApp = false;
 var prev = '';
 if (fso.FolderExists(appDir)) {
@@ -42,6 +74,17 @@ if (!fso.FileExists(asar) && fso.FileExists(bak)) {
   try { fso.CopyFile(bak, asar, true); copiedAsar = true; log('restored-asar'); }
   catch (restoreErr) { log('restore-asar ' + (restoreErr && restoreErr.message ? restoreErr.message : restoreErr)); }
 }
+if (left.length > 0) {
+  // Still held by something: running the installer now only burns attempts and ends with
+  // error 32 on the install dir. Keep the scene, log the holders, roll back.
+  log('abort-busy ' + left.length + ' ' + left[0].name + ' ' + left[0].path);
+  if (movedApp && prev && fso.FolderExists(prev)) {
+    try { fso.MoveFolder(prev, appDir); log('restored-app busy'); } catch (busyErr) { log('restored-app busy ' + (busyErr && busyErr.message ? busyErr.message : busyErr)); }
+  }
+  try { sh.Environment('PROCESS').Remove('ELECTRON_RUN_AS_NODE'); } catch (busyIgnore) {}
+  sh.Run('"' + exe + '"', 1, false);
+  log('started-old');
+} else {
 var exeBeforeSize = fileSize(exe);
 var exeBeforeStamp = fileStamp(exe);
 var asarBeforeSize = fileSize(asar);
@@ -124,4 +167,5 @@ if (!ok) {
   try { sh.Environment('PROCESS').Remove('ELECTRON_RUN_AS_NODE'); } catch (ignore2) {}
   sh.Run('"' + exe + '"', 1, false);
   log('started');
+}
 }

@@ -1,3 +1,42 @@
+# 1.1.73
+
+## 中文
+
+- 版本 **1.1.73**。适配 **DSH 0.2.1-rc.2 / 0.2.1-rc.1 / 0.2.0-rc.2**（官方桌面 EXE 与官方 `dsh web`）。
+- **不再建 `resources\app\runtime` junction**：解包后改为「重建目录结构 + 文件硬链接」。
+  `app\runtime` 变成普通目录，删它只减少硬链接计数，真实 `resources\runtime`（office-skills 等 257 MB）不受影响；
+  同卷不复制，跨卷/无法硬链接时逐文件回退复制（报告里分列 `links` / `copied` / `skipped`）。
+  之前 WSH 的 `FSO.DeleteFolder` 会顺着这条 junction 把真实 runtime 一起清空。
+- **更新交接前主动撤掉 legacy junction**：`official-update.wscript` 在移动 `resources\app` 之前先跑
+  `cmd /c rmdir "…\app\runtime"`（对真实目录无害失败，对链接只删链接本身），日志记
+  `dropped-legacy-runtime-link`。移动后的 `app.dshpurge-prev` 里因此不再带链接。
+- **不再只按 EXE 名杀进程**：更新前枚举 `installDir` 下**所有**进程（Harness 主程序、bundled node runtime、
+  crashpad、elevate、插件隐藏控制台…）并 `taskkill /T`，逐个写 `kill <pid> <name> <path>`。
+  这正是官方安装器 `MoveFileExW` 把整个安装目录改名时报 `error 32（另一个程序正在使用此文件）` 的来源。
+- **占用未解除就不启动安装器**：`left > 0` 时记 `abort-busy <n> <name> <path>`、恢复旧 app、直接回滚，
+  不再让安装器反复失败（历史日志里 12:20 / 12:23 / 13:04 / 13:20 连续 4 次都是 `installer 2`）。
+- 交接日志新增 `kill` / `dropped-legacy-runtime-link` / `abort-busy` / `restored-app busy`。
+
+## English
+
+- **1.1.73**. Targets **DSH 0.2.1-rc.2 / 0.2.1-rc.1 / 0.2.0-rc.2** (official desktop EXE and official `dsh web`).
+- **No more `resources\app\runtime` junction**: after unpacking, the directory is rebuilt with per-file hard links.
+  `app\runtime` is now a real directory, so deleting it only drops link counts and the real
+  `resources\runtime` (257 MB incl. office-skills) survives. Same-volume installs copy nothing; cross-volume
+  falls back to per-file copy (`links` / `copied` / `skipped` are reported).
+  WSH `FSO.DeleteFolder` used to follow that junction and wiped the real runtime.
+- **Legacy links are dropped before the update handoff**: `official-update.wscript` runs
+  `cmd /c rmdir "…\app\runtime"` before moving `resources\app` (fails harmlessly on a real directory, removes only
+  the link itself) and logs `dropped-legacy-runtime-link`. The moved `app.dshpurge-prev` therefore carries no link.
+- **No longer kills by EXE name only**: before updating it enumerates every process under `installDir`
+  (Harness main, bundled node runtime, crashpad, elevate, plugin hidden consoles) and `taskkill /T`s them,
+  logging `kill <pid> <name> <path>`. Those leftover handles are what make the official installer's
+  `MoveFileExW` rename of the whole install dir fail with `error 32`.
+- **Never starts the installer while the tree is still held**: when `left > 0` it logs
+  `abort-busy <n> <name> <path>`, restores the old app and rolls back instead of letting the installer fail
+  again (the old log shows four consecutive `installer 2` runs at 12:20 / 12:23 / 13:04 / 13:20).
+- Handoff log gained `kill` / `dropped-legacy-runtime-link` / `abort-busy` / `restored-app busy`.
+
 # 1.1.79
 
 ## 中文

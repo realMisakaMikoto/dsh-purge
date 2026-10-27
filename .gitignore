@@ -40,3 +40,5 @@ default-prompt-inject.md
 *.tmp
 # 回归测试是交付物的一部分，不能被上面的 scripts/test-*.mjs 规则挡住
 !scripts/test-official-update-rollback.mjs
+# 插件更新器写的本地 revision 标记（运行时状态，不进仓库）
+.dsh-purge-revision
