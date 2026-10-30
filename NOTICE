@@ -3,6 +3,18 @@ YuJunZhiXue/dsh-purge 1.1.74, commit 5a9b8e14856138814a2139a0105481e1dcdaece4:
 - lib/redteam/evidence-ledger.mjs and the evidence/unknown tools and preset instructions
 - lib/rewind.js and the related rewind menu text
 
+It also incorporates these fixes (and only these fixes) from YuJunZhiXue/dsh-purge
+1.1.78–1.1.83, adapted to this fork's structure, as documented in release-notes.md
+and FORK-NOTES.md:
+- lib/core.js: launcher symlink resolve/heal and atomic-write mode preservation
+  (upstream 1.1.78, #154/#155/#157, H21)
+- lib/core.js: #77 rewind anchor tolerance (upstream 1.1.83, #188 generic part)
+- lib/skills.js: default `fs` import (upstream 1.1.80, #172)
+- lib/uninstall.js: nested dsh.profile bundles/plugins cleanup (upstream 1.1.78, #108)
+- lib/zip-extract.js: backslash directory entries (upstream 1.1.80, #170)
+- lib/doctor.js: host version gate (upstream 1.1.83, #188 generic part)
+- client.js: button label visibility rules (upstream 1.1.80, #169)
+
 Those upstream portions are distributed under the Apache License, Version 2.0.
 The license is reproduced in docs/upstream-dsh-purge-LICENSE.
 Other portions retain their existing notices and license terms.

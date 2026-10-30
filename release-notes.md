@@ -1,3 +1,76 @@
+# 1.1.81
+
+## 中文
+
+本版把上游 `YuJunZhiXue/dsh-purge` **1.1.78–1.1.83** 里对这个 fork 真正有用的修复回灌进来。
+版本继续走本地线 **1.1.81**（1.1.80 已发 rc.3 适配），不复用上游的 1.1.80–1.1.83 编号，
+避免两个仓库同号不同内容。宿主支持面沿用 1.1.80：**0.2.1-rc.3 / rc.2 / rc.1 / 0.2.0-rc.2**。
+
+回灌的修复：
+
+- **启动器软链（上游 #157 / #154 / #155）**：原子写是 `tmp + rename`，而 `/usr/local/bin/dsh`、
+  npm 全局 bin 常是指向包内 `bin.js` 的软链 —— rename 会把软链替换成普通文件，之后
+  `dsh plugin` 报 `ERR_MODULE_NOT_FOUND`。现在写之前先解出真实文件、写进目标，软链本身保住；
+  已经被老版本替换成 `bin.js` 拷贝的，能定位到官方入口就还原成软链；解析不到 module root 的
+  node 入口宁可不写。`revert` 也跟着真实文件走，并兼容老版本落在软链旁边的备份。
+- **原子写保权限（上游 H21）**：新临时文件默认 0644，rename 会把官方 `dsh` 的 0755 吃掉 →
+  `Permission denied`。写前记下权限位，写完补回（同步 / 异步两条路径都改）。
+- **技能导入守卫（上游 #172）**：`lib/skills.js` 用了 `fs.realpathSync` 却没导入 `fs`，
+  异常被 `catch` 吞掉 → #54 的「软链导入把自己删空」守卫一直静默失效。补上导入。
+- **#77 回退补丁锚点（上游 #188 的通用部分）**：不再写死整段 5 行。0.2.1-rc.2 起官方在中间插了
+  `if (this.revised.size > 0) this.revised.clear();`，旧的字面量整条失配 → 回退丢消息的功能静默失效。
+  现在只锚方法头/结尾，中间用非贪婪窗口原样搬回，并排除 `isRewindMarker` 防止二次叠加。
+- **卸载清干净 profile（上游 #108）**：dsh 0.2 把 `bundles` / `plugins` 收在 `pkg.dsh.profile` 下面，
+  只删顶层会留下二次启动仍在加载的半卸载状态。嵌套列表一起清。
+- **ZIP 目录项（上游 #170）**：目录项判断只认 `/`，Windows 打的包用 `\` 时会被写成一个同名空文件，
+  后面同名真实条目再落盘就 `EEXIST`。两种斜杠都认。
+- **宿主版本门禁（上游 #188）**：`--doctor` 新增 `host_version` 检查，读宿主的真实版本，
+  和 `package.json` 声明适配的版本比对（`dshTargets`：0.2.1-rc.2 / 0.2.1-rc.1 / 0.2.0-rc.2）。
+  不在范围内直接告警，不再出现「状态全绿、补丁其实整段失配」。
+- **按钮文字可见性（上游 #169）**：宿主工具条会给按钮继承图标字体 / `font-size:0` /
+  `color:transparent`，字在 DOM 里但看不见。补一组样式只强制「看得见」的几项，颜色仍走本项目的变量。
+
+没有回灌的（与本 fork 结构不符或会误伤多宿主）：
+
+- `#166 / #180 / #185` pnpm `allowBuilds` 与 `#162 / #191` profile `cordis.patch.yml` 插入 ——
+  这些都在 `lib/profile-insert.js` + `postinstall` 里，本 fork 没有那套安装期注入。
+- `#174` DSH NEXT 识别 —— 本 fork 只覆盖到 0.2.1-rc.2，识别更新的宿主没有收益。
+- `#188` 里「`pattern_not_found` 也算阻断」—— 本 fork 同时支持三个 rc 版本，
+  同一条必需补丁在某个 rc 上本来就不存在，照抄会把那些用户堵死在重启门禁前。
+
+回归：新增 `scripts/check-upstream-ports.mjs`（13 项），已并入 `node scripts/run-checks.mjs`。
+顺带修掉 1.1.80 引入的测试竞态：`test-official-update-rollback` 的场景 [2] / [9] 里「并发 helper 重建 app」
+会撞上新的硬链接树（`app/runtime` 已经是真实目录），导致 `EEXIST` 与偶发 FAIL。现在按实际分支断言
+（隔离 / 先撤链都算安全），连跑 5 次稳定 48/48。
+## English
+
+Imports the upstream fixes that actually apply to this fork (upstream 1.1.78–1.1.83), keeping the
+local version line so the two repositories no longer share a version number with different contents.
+
+- Launcher symlinks (#157/#154/#155): atomic writes rename over `/usr/local/bin/dsh`, replacing an
+  npm symlink with a plain file and breaking `dsh plugin`. Resolve the real file, write the target,
+  keep the link; heal links already replaced by a `bin.js` copy; refuse to write a node entry whose
+  module root is gone. `revert` follows the same target and still finds older link-side backups.
+- Atomic writes keep the file mode (H21): a 0755 `dsh` no longer becomes 0644 (`Permission denied`).
+- Skills import guard (#172): `lib/skills.js` used `fs` without importing it, so the #54
+  self-delete-through-symlink guard silently degraded. Import restored.
+- #77 rewind anchor (#188 generic part): stop hard-coding five lines; anchor head/tail with a
+  non-greedy window that excludes `isRewindMarker`, so 0.2.1-rc.2's inserted line no longer breaks it.
+- Uninstall (#108): also strip `pkg.dsh.profile.bundles` / `plugins` in dsh 0.2 profiles.
+- ZIP directory entries (#170): accept `\` as well as `/`.
+- Host version gate (#188): `--doctor` compares the real host version against `dshTargets`.
+- Button label visibility (#169): keep the host icon font from hiding our labels.
+
+Not imported: pnpm `allowBuilds` / profile-insert work (#166/#180/#185/#162/#191, this fork has no
+postinstall injection), DSH NEXT detection (#174), and treating `pattern_not_found` as blocking
+(this fork supports four rc hosts, where a required patch legitimately does not exist everywhere).
+
+Regression: `scripts/check-upstream-ports.mjs` (13 checks), wired into `node scripts/run-checks.mjs`.
+Also de-flaked the race 1.1.80 introduced: scenarios [2]/[9] of `test-official-update-rollback` recreated
+`app` while the new hardlink tree already owned `app/runtime`, so the fixture hit `EEXIST` or failed
+assertions. The checks now branch on what actually happened (isolated or junction dropped first are both
+safe) and pass 48/48 five runs in a row.
+
 # 1.1.80
 
 ## 中文

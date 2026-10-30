@@ -80,6 +80,36 @@ function isJunction(fp) {
   }
 }
 
+function skip(name, why) {
+  console.log(`  SKIP  ${name}  ${why}`);
+}
+
+/**
+ * 模拟「并发 helper 把 app 重建出来，并挂了一条 legacy junction」。
+ *
+ * 1.1.80 起 wscript 会自己把 app/runtime 重建成硬链接树，所以这一步可能撞上真实目录
+ * （以前只建 junction，测试因此整批 flaky）。撞上时不做硬来，返回 junction=false，
+ * 调用方按「产品已重建 runtime」分支断言，仍然验证不穿链删除与 runtime 完好。
+ */
+function simulateConcurrentAppRecreation(fx, marker = "recreated") {
+  fs.mkdirSync(fx.app, { recursive: true });
+  const target = path.join(fx.app, "runtime");
+  try {
+    const st = fs.lstatSync(target);
+    if (st.isSymbolicLink()) return { junction: true, reason: "already-link" };
+    return { junction: false, reason: "product-rebuilt-runtime" };
+  } catch {
+    /* 不存在，继续建 junction */
+  }
+  try {
+    fs.symlinkSync(fx.runtime, target, "junction");
+  } catch (e) {
+    return { junction: false, reason: String((e && e.message) || e) };
+  }
+  writeFile(path.join(fx.app, "recreated-marker.txt"), marker);
+  return { junction: true, reason: "created" };
+}
+
 /** 建一份与真实安装同构的夹具：resources/app/runtime -> resources/runtime（junction）。 */
 function makeFixture(root, { name }) {
   const dir = path.join(root, name);
@@ -212,20 +242,28 @@ async function main() {
     });
     // wscript 先把自己的 app 挪成 prev-<ts>，随后跑安装器；此时并发 helper 重建 app
     await sleep(1800);
-    fs.mkdirSync(fx.app, { recursive: true });
-    fs.symlinkSync(fx.runtime, path.join(fx.app, "runtime"), "junction");
-    writeFile(path.join(fx.app, "recreated-marker.txt"), "recreated-by-concurrent-helper");
+    const recreated = simulateConcurrentAppRecreation(fx, "recreated-by-concurrent-helper");
+    if (!recreated.junction) console.log(`  · 并发重建没挂上 junction（${recreated.reason}）`);
     await done(child);
 
     const log = readLog(logPath);
     const intact = runtimeIntact(fx);
     ok("回滚后真实 runtime 仍在（7 个 Office 文件 + manifest）", intact.ok, intact.detail);
     ok("日志不再出现穿过 junction 的 fso.DeleteFolder 记录", !/cleared-recreated-app/.test(log), "");
-    ok(
-      "重建出来的 app 被隔离而不是删除",
-      fs.readdirSync(fx.resources).some((n) => n.startsWith("app.dshpurge-failed-")) || /isolated-app/.test(log),
-      fs.readdirSync(fx.resources).join(",")
-    );
+    if (recreated.junction) {
+      // 1.1.80 起回滚前会先撤掉 legacy junction（dropped-legacy-runtime-link）：这种情况下
+      // 不需要「把重建出来的 app 隔离」也是安全的，断言只要求「没有被穿链删掉」。
+      ok(
+        "重建出来的 app 没有被穿链删除（隔离或先撤链）",
+        fs.readdirSync(fx.resources).some((n) => n.startsWith("app.dshpurge-failed-")) ||
+          /isolated-app|dropped-legacy-runtime-link/.test(log),
+        fs.readdirSync(fx.resources).join(",")
+      );
+    } else {
+      // 产品自己已经把 app/runtime 重建成硬链接树，这条分支里没有「穿链删除」的风险可言，
+      // 隔离与否由回滚结果决定，不能拿它当断言。
+      skip("重建出来的 app 没有被穿链删除（隔离或先撤链）", `产品已重建 runtime（${recreated.reason}），无 junction 分支`);
+    }
     ok("旧 app 已恢复", fs.existsSync(path.join(fx.app, "old-app-marker.txt")), "");
   }
 
@@ -389,14 +427,13 @@ async function main() {
     const script = await renderHandoffScript(fx, { installer: makeSlowFakeInstaller(fx, 1), logPath });
     const child = spawn("cscript.exe", ["//nologo", script], { cwd: fx.dir, stdio: "ignore", windowsHide: true });
     await sleep(1800);
-    fs.mkdirSync(fx.app, { recursive: true });
-    fs.symlinkSync(fx.runtime, path.join(fx.app, "runtime"), "junction");
-    writeFile(path.join(fx.app, "recreated-marker.txt"), "recreated");
+    const recreated = simulateConcurrentAppRecreation(fx, "recreated");
     await done(child);
     const log = readLog(logPath);
     ok("更新前撤掉了 legacy junction", /dropped-legacy-runtime-link/.test(log), "");
     ok("回滚后 runtime 完好", runtimeIntact(fx).ok, runtimeIntact(fx).detail);
     ok("没有穿过 junction 的递归删除记录", !/cleared-recreated-app/.test(log), "");
+    if (!recreated.junction) skip("并发重建的 app 里带 junction", `产品已把 app/runtime 重建成硬链接树（${recreated.reason}）`);
   }
 
   // ─────────────────────────────────────────────────────────────

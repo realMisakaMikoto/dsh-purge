@@ -1023,6 +1023,19 @@ body:not([data-ds-dark-theme]) .dshp-auth-ops button.primary{background:var(--ds
 .dshp-tab-btn:hover{color:var(--dsw-alias-label-primary,currentColor)}
 .dshp-tab-btn.on{color:var(--dsw-alias-brand-primary,#6dbf8c)}
 .dshp-tab-btn.on:after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;border-radius:2px;background:var(--dsw-alias-brand-primary,#6dbf8c)}
+/* 上游 #169：宿主工具条按钮常继承图标字体 / font-size:0 / color:transparent，
+   字在 DOM 里但看不见。这里只强制「看得见」的几项，颜色仍走本项目自己的变量。 */
+.dshp-hero-chip-btn,.dshp-tab-btn,.dshp-launch,.dshp-icon-btn,.dshp-hbtn,.dshp-btn,.dshp-dock-tab,.dshp-dock-head button,.dshp-auth-ops button,.dshp-switch button,.rt-btn{
+font-family:system-ui,-apple-system,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans SC",sans-serif!important;
+-webkit-text-fill-color:currentColor!important;
+text-indent:0!important;
+letter-spacing:normal!important;
+overflow:visible!important;
+text-overflow:clip!important;
+width:auto!important;
+max-width:none!important;
+}
+.dshp-hero-chip-btn,.dshp-launch{min-width:max-content!important}
 /* 玻璃跟随宿主颜色。字重和底的不透明度分开：壳透，字坐在更实的一层上。 */
 .dshp-dock{font-family:"Segoe UI","Microsoft YaHei UI","PingFang SC","Noto Sans SC",system-ui,sans-serif;font-size:14px;line-height:1.6;font-weight:500;-webkit-font-smoothing:antialiased;text-shadow:none}
 .dshp-dock[data-theme="white"],.dshp-dock[data-theme="dusk"]{background:linear-gradient(165deg,color-mix(in srgb,var(--dsw-alias-bg-layer-1,#fff) 50%,transparent),color-mix(in srgb,var(--dsw-alias-brand-primary,#6d8f78) 18%,transparent) 46%,color-mix(in srgb,var(--dsw-alias-bg-layer-2,#fff) 28%,transparent))!important;backdrop-filter:blur(26px) saturate(1.45)!important;-webkit-backdrop-filter:blur(26px) saturate(1.45)!important;color:var(--dshp-ink)!important;border:1px solid color-mix(in srgb,var(--dsw-alias-brand-primary,#6d8f78) 36%,transparent)!important;box-shadow:inset 0 1px 0 color-mix(in srgb,#fff 42%,transparent),0 18px 44px color-mix(in srgb,#000 18%,transparent)!important}

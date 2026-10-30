@@ -1,7 +1,7 @@
 # FORK NOTES — 跑在 DSH 0.2.1-rc.3 / 0.2.1-rc.2 / 0.2.1-rc.1 / 0.2.0-rc.2 上的可用副本
 
-上游：<https://github.com/YuJunZhiXue/dsh-purge>（MIT，见 `LICENSE`）
-本仓库版本：`dsh-purge 1.1.71`，针对 **DSH 0.2.1-rc.3 / 0.2.1-rc.2 / 0.2.1-rc.1 / 0.2.0-rc.2（desktop / `resources/app`）** 打了四组修复。
+上游：<https://github.com/YuJunZhiXue/dsh-purge>（Apache-2.0，见 `docs/upstream-dsh-purge-LICENSE`）
+本仓库版本：`dsh-purge 1.1.81`，针对 **DSH 0.2.1-rc.3 / 0.2.1-rc.2 / 0.2.1-rc.1 / 0.2.0-rc.2（desktop / `resources/app`）** 打了五组修复。
 不是上游的发布分支，也不带任何本机数据（`$DSH_HOME/redteam/config.json`、密钥、engagement 记录都不在仓库里）。
 
 ## 修复 1 — `#40 COMPLETE_PROMPT_KEEP_INJECT` 命中不到 rc.2 的 complete 收尾块
@@ -77,6 +77,33 @@ scripts/test-official-update-rollback.mjs              # 回归测试 2（更新
 `promptDropReport(aiBase)` 是新增的诊断导出：逐项返回 `identityMarked / injectMarked / identityLeft /
 dropsInject / isPromptModule` 和 `reason`，门禁失败时会连宿主路径、`#40` 状态一起返回，
 不再只丢一句「没写进全部宿主」。
+
+## 修复 5 — 回灌上游 1.1.78–1.1.83 的可行部分（1.1.81）
+
+上游从 1.1.75 起陆续修了一批「装完就坏 / 静默失效」的问题，但它是单宿主（0.2.1-rc.2）口径，
+不能整段 cherry-pick。取的是与本 fork 结构对得上、且不会误伤多宿主的那几条：
+
+| 上游 | 内容 | 落在本仓库 |
+|---|---|---|
+| 1.1.78 `#154/#155/#157` | 启动器软链写穿目标 + 已被写成 `bin.js` 拷贝的还原；原子写保 0755 | `lib/core.js`（`resolveShimWriteTarget` / `healCopiedLauncher` / `existingMode`+`restoreMode`，`patchShim` / `revertShim`） |
+| 1.1.80 `#172` | `lib/skills.js` 补 `fs` 导入（否则 #54 软链自删守卫静默失效） | `lib/skills.js` 第 1 行 |
+| 1.1.80 `#170` | ZIP 目录项认 `\` | `lib/zip-extract.js` |
+| 1.1.80 `#169` | 宿主图标字体把按钮文字藏掉 | `client.js`（只强制可见性，颜色仍走本项目变量） |
+| 1.1.78 `#108` | 卸载清 `pkg.dsh.profile.bundles/plugins` | `lib/uninstall.js` |
+| 1.1.83 `#188` 通用部分 | `#77` 回退补丁锚点容错（rc.2 在中间插了一行） | `lib/core.js` `ALL_PATCHES` 的 `id: 77` |
+| 1.1.83 `#188` 通用部分 | 宿主版本门禁 | `lib/doctor.js`（`HOST_TARGETS` / `readHostVersion` / `hostSupport`，`--doctor` 的 `host_version` 行；支持面读 `package.json` 的 `dshTargets`：rc.3 / rc.2 / rc.1 / 0.2.0-rc.2） |
+
+**故意没取**：
+
+- `#166 / #180 / #185`（pnpm `allowBuilds`）、`#162 / #191`（profile `cordis.patch.yml` 插入）——
+  全在 `lib/profile-insert.js` + `postinstall` 里，本 fork 没有安装期注入那套，搬过来是死代码。
+- `#174` DSH NEXT 识别 —— 本 fork 只覆盖到 0.2.1-rc.2。
+- `#188` 里「`pattern_not_found` 也算阻断」—— 本 fork 同时支持 rc.2 / rc.1 / 0.2.0-rc.2，
+  同一条必需补丁在某个 rc 上本来就不存在，照抄会让那批用户过不了重启门禁。
+
+回归：`node scripts/check-upstream-ports.mjs`（13 项，含软链夹具、权限位、#77 两种形状、
+zip 反斜杠目录项、宿主版本门禁；Windows 上跳过 POSIX 专属项）。已并入 `node scripts/run-checks.mjs`。
+
 
 ---
 

@@ -42,3 +42,7 @@ default-prompt-inject.md
 !scripts/test-official-update-rollback.mjs
 # 插件更新器写的本地 revision 标记（运行时状态，不进仓库）
 .dsh-purge-revision
+# 发布脚本产物 / release artifacts (never upload)
+/dsh-purge-*.zip
+/SHA256SUMS
+/release-body.txt
