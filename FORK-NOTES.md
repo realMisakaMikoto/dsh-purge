@@ -1,10 +1,35 @@
 # FORK NOTES — 独立红队构建（dsh 0.2.2-rc.1 / 0.2.1-rc.5 / rc.3 / rc.2 / rc.1 / 0.2.0-rc.2）
 
 上游：<https://github.com/YuJunZhiXue/dsh-purge>（Apache-2.0，见 `docs/upstream-dsh-purge-LICENSE`）
-本仓库版本：`dsh-purge 1.2.3`。**1.2.0 起版本号分家**：不再跟随上游的 1.1.x 号段，上游只作为
+本仓库版本：`dsh-purge 1.2.4`。**1.2.0 起版本号分家**：不再跟随上游的 1.1.x 号段，上游只作为
 「宿主正确性」类修复的来源按需挑选（见下文「回灌」各节），不再是发布基线。
 支持面：**DSH 0.2.2-rc.1 / 0.2.1-rc.5 / rc.3 / rc.2 / rc.1 / 0.2.0-rc.2（desktop / `resources/app`）**。
 不带任何本机数据（`$DSH_HOME/redteam/config.json`、密钥、engagement 记录都不在仓库里）。
+
+## 1.2.4 — 五条 0.2.2 补丁从 `skipped` 转 `applied`
+
+1.2.3 装完之后 `purge_status` 一直有 5 条 `skipped`（不是 pending）：pattern 还在，但命中的代码
+已经不长那个形状了。逐条对过宿主源码（`resources/app/dsh/node_modules/@deepseek-ai`）后的结论：
+
+| 补丁 | 0.2.2 的实际形状 | 处理 |
+| --- | --- | --- |
+| #17 `FS_OBSERVATION_INTENT_FREE` | `editIntent` / `deleteIntent` 合并成 `requirePresent(target, actor, verb)` | 改写 `requirePresent`，一处同时放行「编辑先读」「删除先读」；marker 取 `[dsh-purge] observation bypass: edits` 前缀，新旧产物都认 |
+| #18 `REPEAT_TOOL_REMINDER_DISABLED` | `tools/post-execute` 的 `block` 分支被官方删掉 | 追加 accept-only pattern |
+| #13 `ESCALATION_WIDENING_EXEMPT` | `new Error(msg)` → `new SandboxEscalationError(msg, CODE)` | 追加 0.2.2 pattern（三条 throw 一并） |
+| #35 `ESCALATION_NEVER_REJECT` | `cancelled` 分支先 `approval.signal?.throwIfAborted()` 再抛 | 追加整块 switch pattern |
+| #62 `OFFICIAL_TOOL_ASK_FAILOPEN` | `serviceAsk` 真正跑在 `dsh-tools/lib/pipeline.js`（`lib/index.js` 只转出） | 新增 `dsh-tools-pipeline` 键 + 运行态 / types 两套 pattern |
+
+顺带两件：
+
+- **`naWhenUnmatched`**：回收型补丁（#80 只撤旧版自己插进去的行）和结构已消失的补丁
+  （#56 / #77 依赖的 `isRewindMarker` / `rewindVisibleEntries` 在 0.2.2 的会话客户端里不存在）
+  报 `na` 而不是 `skipped`；#71 在梁神未安装时同理。
+- **安装戳**：包安装副本没有 `.git`、也没有 `.dsh-purge-revision`，`resolveApplySha()` 改回
+  `apply:<版本>`，启动时把孤儿 sha 归一 —— 之前 `installed-rev` 里那个远端已被 force-push
+  改写的提交号只要和 applied.json 任一边变化，就会白跑一次 reapply + 重启。
+
+复算：`patchStatus()` 85 条 = applied 70 / pending 5 / na 10；五条新 pattern 干跑产物逐个
+`node --check` 通过。
 
 ## 适配 0.2.2-rc.1 — 三个包被拆走、五个 pattern 换了形状
 

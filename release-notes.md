@@ -1,3 +1,64 @@
+# 1.2.4
+
+## 中文
+
+- 版本 **1.2.4**。修 0.2.2-rc.1 上五条补丁因为代码搬家和抛错类型改名而一直 `skipped` 的问题：
+  - **#17** `FS_OBSERVATION_INTENT_FREE`：0.2.2 把 `editIntent` / `deleteIntent` 合并成
+    `requirePresent(target, actor, verb)`，旧 pattern 锚在 `editIntent` 上必然不命中。新 pattern
+    直接改写 `requirePresent`，一道改动同时放行「编辑先读」和「删除先读」；marker 取
+    `[dsh-purge] observation bypass: edits` 前缀，新旧两种产物都能判已完成。
+  - **#18** `REPEAT_TOOL_REMINDER_DISABLED`：`tools/post-execute` 的 `block` 分支被官方删掉，
+    旧 pattern 连带那段整块锚，于是全条失配。补一条只含 accept 形态的新 pattern。
+  - **#13** `ESCALATION_WIDENING_EXEMPT`：抛错从 `new Error(msg)` 换成
+    `new SandboxEscalationError(msg, "SANDBOX_ESCALATION_*")`，旧 pattern 的 `new Error(` 不再命中。
+  - **#35** `ESCALATION_NEVER_REJECT`：`cancelled` 分支多了一层 `approval.signal?.throwIfAborted()`，
+    旧 switch 整块失配。
+  - **#62** `OFFICIAL_TOOL_ASK_FAILOPEN`：`serviceAsk` 真正跑在 `dsh-tools/lib/pipeline.js`
+    （`lib/index.js` 只是转出），而目标键里从来没有这个文件 —— 这条在 0.2.2 上根本不可能生效。
+    新增 `dsh-tools-pipeline` 键，并补 pipeline.js（tab + `void 0` + `approvalDenial()`）与
+    types 副本（4 空格 + `undefined`）两套 pattern。
+- **补丁状态不再谎报**：新增 `naWhenUnmatched`。#56 / #77（会话客户端里的 rewind 结构在 0.2.2
+  已经不存在）、#80（回收旧版插件自己插入的 fs/web 行，而 0.2.2 的 minimal 自带 `tool-fs`）
+  现在报 `na` 而不是 `skipped`；#71 在梁神未安装时从 `missing_file` 改为 `na`。
+- **安装戳自愈**：包安装（无 `.git`、无 `.dsh-purge-revision`）的副本改用 `apply:<版本>` 作为
+  应用戳，并在启动时把残留的孤儿 sha 归一。之前 `installed-rev` 里留着一个远端已被 force-push
+  改写的提交号，两个戳恰好一致所以没有空转，但只要其中一边变化就会白跑一次 reapply + 重启。
+- **发布链补 tar.gz**：`scripts/publish-release.mjs` 现在同时产出 `dsh-purge-<版本>.tar.gz`，
+  `SHA256SUMS` 覆盖 zip 与 tar.gz 两个归档；`package.json` 的 `dsh.install.tarball` 指向 release
+  资产里的 tar.gz，不再指向自动生成的 `archive/refs/tags/*.tar.gz`（那份没有校验和、也不在资产列表里）。
+- **验证**：0.2.2-rc.1 宿主上 `patchStatus()` 复算 85 条 = applied 70 / pending 5 / na 10；
+  5 条新 pattern 逐个用 `core.applyReplacementsToText()` 干跑，产物写盘后 `node --check` 全部通过。
+
+## English
+
+- **1.2.4** — fixes five patches that had been silently `skipped` on DSH 0.2.2-rc.1 since the host
+  reshuffled its code and error classes:
+  - **#17** `FS_OBSERVATION_INTENT_FREE`: 0.2.2 folded `editIntent` / `deleteIntent` into
+    `requirePresent(target, actor, verb)`, so a pattern anchored on `editIntent` can never match.
+    The new pattern rewrites `requirePresent`, which opens both the edit and the delete read-first
+    gate in one edit; the marker is the shared prefix
+    `[dsh-purge] observation bypass: edits` so old and new outputs both count as done.
+  - **#18** `REPEAT_TOOL_REMINDER_DISABLED`: the `block` branch of `tools/post-execute` is gone
+    upstream, and the old pattern anchored through it. A second accept-only pattern is added.
+  - **#13** `ESCALATION_WIDENING_EXEMPT`: throws became
+    `new SandboxEscalationError(msg, "SANDBOX_ESCALATION_*")`.
+  - **#35** `ESCALATION_NEVER_REJECT`: the `cancelled` branch now calls
+    `approval.signal?.throwIfAborted()` first.
+  - **#62** `OFFICIAL_TOOL_ASK_FAILOPEN`: `serviceAsk` lives in `dsh-tools/lib/pipeline.js` in 0.2.2
+    (`lib/index.js` only re-exports), and that file was never in the target map — the patch could not
+    work on 0.2.2 at all. Adds the `dsh-tools-pipeline` key plus patterns for both the runtime file
+    (tabs, `void 0`, `approvalDenial()`) and the types copy (4 spaces, `undefined`).
+- **Honest patch status**: new `naWhenUnmatched`. #56 / #77 (the rewind structures they patch no longer
+  exist in the 0.2.2 conversation client) and #80 (it only reverts lines older builds inserted, while
+  0.2.2's minimal preset ships `tool-fs` natively) now report `na` instead of `skipped`; #71 reports
+  `na` instead of `missing_file` when Liangshen is not installed.
+- **Apply-stamp self-heal**: dist installs (no `.git`, no `.dsh-purge-revision`) stamp
+  `apply:<version>`, and an orphaned sha left by a force-pushed history is normalized at boot.
+- **Release tarball**: `scripts/publish-release.mjs` now ships `dsh-purge-<version>.tar.gz` as well,
+  and `SHA256SUMS` covers both archives; `dsh.install.tarball` points at the release asset instead of
+  the auto-generated `archive/refs/tags/*.tar.gz`, which has no checksum and is not a listed asset.
+- **Verified**: `patchStatus()` on 0.2.2-rc.1 → 85 patches = 70 applied / 5 pending / 10 na; every new
+  pattern dry-ran through `core.applyReplacementsToText()` and the patched files pass `node --check`.
 # 1.2.3
 
 ## 中文
